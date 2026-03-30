@@ -1,0 +1,16 @@
+#!/bin/sh
+# inject-tool — finds python3 and exec's inject-tool.py
+# Delivered via ConfigMap automount to /usr/local/bin/inject-tool
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+if command -v python3 >/dev/null 2>&1; then
+  exec python3 "${SCRIPT_DIR}/inject-tool.py" "$@"
+elif [ -x /injected-tools/bin/python3 ]; then
+  exec /injected-tools/bin/python3 "${SCRIPT_DIR}/inject-tool.py" "$@"
+else
+  echo "ERROR: python3 not found." >&2
+  echo "Install python3 or inject it first: inject-tool python3" >&2
+  echo "(You'll need to run 'inject-tool python3' from a workspace that has python3.)" >&2
+  exit 1
+fi
