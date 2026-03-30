@@ -6,12 +6,12 @@ Container images and `inject-tool` CLI for injecting AI CLI tools into Eclipse C
 
 | Tool | Pattern | Image | Architectures |
 |------|---------|-------|---------------|
-| opencode | init | `quay.io/che-incubator/tools-injector/opencode:latest` | amd64, arm64 |
-| goose | init | `quay.io/che-incubator/tools-injector/goose:latest` | amd64, arm64 |
-| claude-code | init | `quay.io/che-incubator/tools-injector/claude-code:latest` | amd64, arm64 |
-| gemini-cli | bundle | `quay.io/che-incubator/tools-injector/gemini-cli:latest` | amd64, arm64 |
-| kilocode | bundle | `quay.io/che-incubator/tools-injector/kilocode:latest` | amd64, arm64 |
-| tmux | init | `quay.io/che-incubator/tools-injector/tmux:latest` | amd64, arm64 |
+| opencode | init | `quay.io/okurinny/tools-injector/opencode:next` | amd64, arm64 |
+| goose | init | `quay.io/okurinny/tools-injector/goose:next` | amd64, arm64 |
+| claude-code | init | `quay.io/okurinny/tools-injector/claude-code:next` | amd64, arm64 |
+| gemini-cli | bundle | `quay.io/okurinny/tools-injector/gemini-cli:next` | amd64, arm64 |
+| kilocode | bundle | `quay.io/okurinny/tools-injector/kilocode:next` | amd64, arm64 |
+| tmux | init | `quay.io/okurinny/tools-injector/tmux:next` | amd64, arm64 |
 
 **Init pattern**: Single binary copied to a shared volume via preStart init container.
 **Bundle pattern**: Node.js tool + runtime bundled at `/opt/<tool>/`, copied via init container.

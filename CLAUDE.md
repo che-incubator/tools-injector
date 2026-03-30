@@ -56,7 +56,7 @@ Per-tool env vars (`TOOL_ENV[]`) and setup commands (`TOOL_SETUP[]`) are also ha
 - `.github/workflows/pr.yml` — builds all 6 tools multi-arch on every PR, tags with branch name
 - `.github/workflows/release.yml` — pushes `latest` tag on merge to main
 
-Both push to `quay.io/che-incubator/tools-injector/<tool>`.
+Both push to `quay.io/okurinny/tools-injector/<tool>`.
 
 ## Adding a New Tool
 

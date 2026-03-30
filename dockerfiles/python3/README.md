@@ -13,7 +13,7 @@ components:
       size: 256Mi
   - name: python3-injector
     container:
-      image: quay.io/che-incubator/tools-injector/python3:latest
+      image: quay.io/okurinny/tools-injector/python3:next
       command: ["/bin/cp"]
       args: ["/usr/local/bin/python3", "/injected-tools/python3"]
       memoryLimit: 128Mi

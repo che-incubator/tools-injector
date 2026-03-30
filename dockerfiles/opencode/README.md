@@ -11,7 +11,7 @@ components:
       size: 256Mi
   - name: opencode-injector
     container:
-      image: quay.io/che-incubator/tools-injector/opencode:latest
+      image: quay.io/okurinny/tools-injector/opencode:next
       command: ["/bin/cp"]
       args: ["/usr/local/bin/opencode", "/injected-tools/opencode"]
       memoryLimit: 128Mi

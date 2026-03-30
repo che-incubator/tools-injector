@@ -31,8 +31,8 @@ TOOL_SETUP = {
     "gemini-cli": 'mkdir -p /tmp/gemini-home/.gemini && echo \'{"projects":{}}\' > /tmp/gemini-home/.gemini/projects.json',
 }
 
-REGISTRY = os.environ.get("INJECT_TOOL_REGISTRY", "quay.io/che-incubator")
-TAG = os.environ.get("INJECT_TOOL_TAG", "latest")
+REGISTRY = os.environ.get("INJECT_TOOL_REGISTRY", "quay.io/okurinny")
+TAG = os.environ.get("INJECT_TOOL_TAG", "next")
 
 
 # ============================================================================

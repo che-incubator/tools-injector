@@ -10,13 +10,13 @@ else
 endif
 
 # Image registry
-IMAGE_REGISTRY ?= quay.io/che-incubator
+IMAGE_REGISTRY ?= quay.io/okurinny
 
 # Tool definitions
 TOOLS := opencode goose claude-code kilocode gemini-cli tmux python3
 
 # Default tag
-TAG ?= latest
+TAG ?= next
 
 # Helper to derive image name from tool name
 _IMG = $(IMAGE_REGISTRY)/tools-injector/$1:$(TAG)

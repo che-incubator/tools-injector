@@ -11,7 +11,7 @@ components:
       size: 256Mi
   - name: kilocode-injector
     container:
-      image: quay.io/che-incubator/tools-injector/kilocode:latest
+      image: quay.io/okurinny/tools-injector/kilocode:next
       command: ["/bin/sh"]
       args: ["-c", "cp -a /opt/kilocode/. /injected-tools/kilocode/"]
       memoryLimit: 256Mi

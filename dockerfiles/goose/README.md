@@ -11,7 +11,7 @@ components:
       size: 256Mi
   - name: goose-injector
     container:
-      image: quay.io/che-incubator/tools-injector/goose:latest
+      image: quay.io/okurinny/tools-injector/goose:next
       command: ["/bin/cp"]
       args: ["/usr/local/bin/goose", "/injected-tools/goose"]
       memoryLimit: 128Mi

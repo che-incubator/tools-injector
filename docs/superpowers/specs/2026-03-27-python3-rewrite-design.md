@@ -44,8 +44,8 @@ inject-tool --help                     Show help
 
 | Var | Default | Description |
 |-----|---------|-------------|
-| `INJECT_TOOL_REGISTRY` | `quay.io/che-incubator` | Image registry prefix |
-| `INJECT_TOOL_TAG` | `latest` | Image tag |
+| `INJECT_TOOL_REGISTRY` | `quay.io/okurinny` | Image registry prefix |
+| `INJECT_TOOL_TAG` | `next` | Image tag |
 | `DEVWORKSPACE_NAMESPACE` | (required) | Auto-set by Che |
 | `DEVWORKSPACE_NAME` | (required) | Auto-set by Che |
 | `KUBERNETES_SERVICE_HOST` | (required) | Auto-set by k8s |

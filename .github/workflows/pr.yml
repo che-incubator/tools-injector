@@ -34,7 +34,7 @@ jobs:
           - name: python3
             dockerfile: dockerfiles/python3
     env:
-      IMAGE: quay.io/che-incubator/tools-injector/${{ matrix.tool.name }}
+      IMAGE: quay.io/okurinny/tools-injector/${{ matrix.tool.name }}
       TAG: ${{ github.head_ref }}
 
     steps:
