@@ -283,7 +283,7 @@ def build_inject_ops(tool, ws, skip_infra=False):
 
     # 1. Add injected-tools volume if missing
     if not skip_infra and find_component_index(ws, "injected-tools") is None:
-        ops.extend(REGISTRY_DATA["infrastructure"]["patch"])
+        ops.extend(copy.deepcopy(REGISTRY_DATA["infrastructure"]["patch"]))
 
     # 2. Add injector component from registry patch (with image override)
     patch_ops = copy.deepcopy(reg_tool["patch"])
