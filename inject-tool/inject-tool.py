@@ -8,31 +8,36 @@ import ssl
 import subprocess
 import sys
 import urllib.request
+import copy
 
 # ============================================================================
-# Tool registry
+# Tool registry (loaded from registry.json at startup)
 # ============================================================================
-TOOLS = {
-    "opencode":    {"pattern": "init",   "src": "/usr/local/bin/opencode", "binary": "opencode"},
-    "goose":       {"pattern": "init",   "src": "/usr/local/bin/goose",    "binary": "goose"},
-    "claude-code": {"pattern": "init",   "src": "/usr/local/bin/claude",   "binary": "claude"},
-    "kilocode":    {"pattern": "bundle", "src": "/opt/kilocode",           "binary": "kilo"},
-    "gemini-cli":  {"pattern": "bundle", "src": "/opt/gemini-cli",         "binary": "gemini"},
-    "tmux":        {"pattern": "init",   "src": "/usr/local/bin/tmux",     "binary": "tmux"},
-    "python3":     {"pattern": "init",   "src": "/usr/local/bin/python3",  "binary": "python3"},
-}
+def _registry_path():
+    override = os.environ.get("INJECT_TOOL_REGISTRY_FILE")
+    if override:
+        return override
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "registry.json")
 
-TOOL_ENV = {
-    "gemini-cli": "GEMINI_CLI_HOME=/tmp/gemini-home",
-    "claude-code": "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1",
-}
 
-TOOL_SETUP = {
-    "gemini-cli": 'mkdir -p /tmp/gemini-home/.gemini && echo \'{"projects":{}}\' > /tmp/gemini-home/.gemini/projects.json',
-}
+def load_registry():
+    path = _registry_path()
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"ERROR: registry.json not found at {path}", file=sys.stderr)
+        print("Set INJECT_TOOL_REGISTRY_FILE to override the path.", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"ERROR: registry.json is not valid JSON: {e}", file=sys.stderr)
+        sys.exit(1)
 
-REGISTRY = os.environ.get("INJECT_TOOL_REGISTRY", "quay.io/okurinny")
-TAG = os.environ.get("INJECT_TOOL_TAG", "next")
+
+REGISTRY_DATA = load_registry()
+
+_base_registry = os.environ.get("INJECT_TOOL_REGISTRY") or REGISTRY_DATA["registry"]
+_base_tag = os.environ.get("INJECT_TOOL_TAG") or REGISTRY_DATA["tag"]
 
 
 # ============================================================================
@@ -48,16 +53,17 @@ def info(msg):
 
 
 def tool_image(tool):
-    return f"{REGISTRY}/tools-injector/{tool}:{TAG}"
+    return f"{_base_registry}/tools-injector/{tool}:{_base_tag}"
 
 
 def validate_tools(tool_names):
+    tools = REGISTRY_DATA["tools"]
     for name in tool_names:
-        if name not in TOOLS:
+        if name not in tools:
             print(f"Unknown tool: {name}\n", file=sys.stderr)
             print("Available tools:", file=sys.stderr)
-            for t in sorted(TOOLS):
-                print(f"  {t:<15s} {TOOLS[t]['pattern']}", file=sys.stderr)
+            for t in sorted(tools):
+                print(f"  {t:<15s} {tools[t]['pattern']}", file=sys.stderr)
             sys.exit(1)
 
 
@@ -251,8 +257,8 @@ def cmd_list():
     ws = fetch_workspace()
     print(f"{'Tool':<15s} {'Pattern':<10s} {'Status'}")
     print(f"{'----':<15s} {'-------':<10s} {'------'}")
-    for tool in sorted(TOOLS):
-        pattern = TOOLS[tool]["pattern"]
+    for tool in sorted(REGISTRY_DATA["tools"]):
+        pattern = REGISTRY_DATA["tools"][tool]["pattern"]
         comp_name = f"{tool}-injector"
         status = "injected" if find_component_index(ws, comp_name) is not None else "not injected"
         print(f"{tool:<15s} {pattern:<10s} {status}")
