@@ -2,13 +2,13 @@
 """inject-tool — dynamically inject CLI tools into DevWorkspaces."""
 
 import argparse
+import copy
 import json
 import os
 import ssl
 import subprocess
 import sys
 import urllib.request
-import copy
 
 # ============================================================================
 # Tool registry (loaded from registry.json at startup)
@@ -24,14 +24,21 @@ def load_registry():
     path = _registry_path()
     try:
         with open(path) as f:
-            return json.load(f)
-    except FileNotFoundError:
-        print(f"ERROR: registry.json not found at {path}", file=sys.stderr)
+            data = json.load(f)
+    except OSError as e:
+        print(f"ERROR: Cannot read registry file at {path}: {e}", file=sys.stderr)
         print("Set INJECT_TOOL_REGISTRY_FILE to override the path.", file=sys.stderr)
         sys.exit(1)
     except json.JSONDecodeError as e:
         print(f"ERROR: registry.json is not valid JSON: {e}", file=sys.stderr)
         sys.exit(1)
+
+    for key in ("registry", "tag", "tools"):
+        if key not in data:
+            print(f"ERROR: registry.json is missing required key '{key}'", file=sys.stderr)
+            sys.exit(1)
+
+    return data
 
 
 REGISTRY_DATA = load_registry()
