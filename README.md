@@ -12,9 +12,24 @@ Container images and `inject-tool` CLI for injecting AI CLI tools into Eclipse C
 | gemini-cli | bundle | `quay.io/okurinny/tools-injector/gemini-cli:next` | amd64, arm64 |
 | kilocode | bundle | `quay.io/okurinny/tools-injector/kilocode:next` | amd64, arm64 |
 | tmux | init | `quay.io/okurinny/tools-injector/tmux:next` | amd64, arm64 |
+| python3 | init | `quay.io/okurinny/tools-injector/python3:next` | amd64, arm64 |
 
 **Init pattern**: Single binary copied to a shared volume via preStart init container.
 **Bundle pattern**: Node.js tool + runtime bundled at `/opt/<tool>/`, copied via init container.
+
+## Setup
+
+Deploy `inject-tool` and the tool registry to a Che namespace (requires `kubectl` or `oc` with cluster access):
+
+```bash
+inject-tool/setup.sh <namespace>
+```
+
+This creates two ConfigMaps in the namespace:
+- **`inject-tool`** — automounted into every workspace at `/usr/local/bin/` via DWO labels
+- **`tools-injector-registry`** — exposes the tool registry to Che Dashboard (labeled `app.kubernetes.io/part-of=tools-injector`)
+
+After setup, `inject-tool` is available in every new or restarted workspace in that namespace.
 
 ## inject-tool CLI
 
