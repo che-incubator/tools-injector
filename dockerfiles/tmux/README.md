@@ -11,7 +11,7 @@ components:
       size: 256Mi
   - name: tmux-injector
     container:
-      image: quay.io/okurinny/tools-injector/tmux:next
+      image: quay.io/akurinnoy/tools-injector/tmux:next
       command: ["/bin/cp"]
       args: ["/usr/local/bin/tmux", "/injected-tools/tmux"]
       memoryLimit: 128Mi

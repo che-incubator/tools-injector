@@ -11,7 +11,7 @@ components:
       size: 256Mi
   - name: gemini-cli-injector
     container:
-      image: quay.io/okurinny/tools-injector/gemini-cli:next
+      image: quay.io/akurinnoy/tools-injector/gemini-cli:next
       command: ["/bin/sh"]
       args: ["-c", "cp -a /opt/gemini-cli/. /injected-tools/gemini-cli/"]
       memoryLimit: 256Mi

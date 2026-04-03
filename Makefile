@@ -10,7 +10,7 @@ else
 endif
 
 # Image registry
-IMAGE_REGISTRY ?= quay.io/okurinny
+IMAGE_REGISTRY ?= quay.io/akurinnoy
 
 # Tool definitions
 TOOLS := opencode goose claude-code kilocode gemini-cli tmux python3

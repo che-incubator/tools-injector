@@ -36,7 +36,7 @@ jobs:
           - name: python3
             dockerfile: dockerfiles/python3
     env:
-      IMAGE: quay.io/okurinny/tools-injector/${{ matrix.tool.name }}
+      IMAGE: quay.io/akurinnoy/tools-injector/${{ matrix.tool.name }}
       TAG: next
 
     steps:

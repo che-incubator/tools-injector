@@ -49,7 +49,7 @@ inject-tool remove opencode --hot
 
 | Env Var | Default | Description |
 |---------|---------|-------------|
-| `INJECT_TOOL_REGISTRY` | `quay.io/okurinny` | Image registry prefix |
+| `INJECT_TOOL_REGISTRY` | `quay.io/akurinnoy` | Image registry prefix |
 | `INJECT_TOOL_TAG` | `next` | Image tag |
 
 ## Architecture

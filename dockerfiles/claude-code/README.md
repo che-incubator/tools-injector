@@ -11,7 +11,7 @@ components:
       size: 256Mi
   - name: claude-code-injector
     container:
-      image: quay.io/okurinny/tools-injector/claude-code:next
+      image: quay.io/akurinnoy/tools-injector/claude-code:next
       command: ["/bin/cp"]
       args: ["/usr/local/bin/claude", "/injected-tools/claude"]
       memoryLimit: 128Mi
