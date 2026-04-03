@@ -262,6 +262,51 @@ def parse_args():
 # ============================================================================
 # Commands
 # ============================================================================
+PROJECTS_DIR = "/projects"
+
+
+def discover_configs():
+    """Find .che/inject-tools.json files in workspace projects.
+
+    Returns a list of file paths, sorted alphabetically by parent directory.
+    """
+    override = os.environ.get("INJECT_TOOLS_CONFIG")
+    if override:
+        if not os.path.isfile(override):
+            die(f"INJECT_TOOLS_CONFIG points to non-existent file: {override}")
+        return [override]
+
+    configs = []
+    if not os.path.isdir(PROJECTS_DIR):
+        return configs
+
+    for entry in sorted(os.listdir(PROJECTS_DIR)):
+        config_path = os.path.join(PROJECTS_DIR, entry, ".che", "inject-tools.json")
+        if os.path.isfile(config_path):
+            configs.append(config_path)
+
+    return configs
+
+
+def load_inject_config(config_path):
+    """Load and validate a .che/inject-tools.json file.
+
+    Returns the parsed JSON data.
+    """
+    try:
+        with open(config_path) as f:
+            data = json.load(f)
+    except OSError as e:
+        die(f"Cannot read config file {config_path}: {e}")
+    except json.JSONDecodeError as e:
+        die(f"Invalid JSON in {config_path}: {e}")
+
+    if "tools" not in data or not isinstance(data["tools"], list):
+        die(f"{config_path}: missing or invalid 'tools' array")
+
+    return data
+
+
 def cmd_list():
     validate_env()
     ws = fetch_workspace()
@@ -582,7 +627,15 @@ def cmd_remove(tools, hot):
 
 
 def cmd_init(dry_run):
-    info("init is not yet implemented.")
+    validate_env()
+
+    configs = discover_configs()
+    if not configs:
+        info("No .che/inject-tools.json found in /projects/*/. Nothing to do.")
+        return
+
+    for config_path in configs:
+        info(f"Found config: {config_path}")
 
 
 # ============================================================================
