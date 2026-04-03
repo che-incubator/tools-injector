@@ -35,6 +35,8 @@ jobs:
             dockerfile: dockerfiles/tmux
           - name: python3
             dockerfile: dockerfiles/python3
+          - name: inject-tool-service
+            dockerfile: inject-tool/service
     env:
       IMAGE: quay.io/akurinnoy/tools-injector/${{ matrix.tool.name }}
       TAG: next
