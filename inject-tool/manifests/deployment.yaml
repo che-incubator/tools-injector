@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inject-tool-service
+  labels:
+    app: inject-tool-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inject-tool-service
+  template:
+    metadata:
+      labels:
+        app: inject-tool-service
+    spec:
+      serviceAccountName: inject-tool-service
+      containers:
+        - name: server
+          image: IMAGE_PLACEHOLDER
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inject-tool-service
+spec:
+  selector:
+    app: inject-tool-service
+  ports:
+    - port: 8080
+      targetPort: 8080
