@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # inject-tool — finds python3 and exec's inject-tool.py
 # Delivered via ConfigMap automount to /usr/local/bin/inject-tool
 
