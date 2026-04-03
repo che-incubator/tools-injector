@@ -441,7 +441,7 @@ def build_inject_ops(tool, ws, skip_infra=False, tool_entry=None):
     for op in patch_ops:
         if op.get("op") == "add" and isinstance(op.get("value"), dict):
             container = op["value"].get("container", {})
-            if "image" in container:
+            if "image" in container and not tool_entry:
                 container["image"] = tool_image(tool)
     ops.extend(patch_ops)
 
