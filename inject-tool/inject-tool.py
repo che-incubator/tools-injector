@@ -752,9 +752,36 @@ def cmd_init(dry_run):
         info("No tools declared in config files.")
         return
 
+    ws = fetch_workspace()
+
+    # Filter already-injected tools
+    to_inject = []
     for name, entry in resolved:
-        kind = "custom" if entry else "registry"
-        info(f"  {name} ({kind})")
+        if find_component_index(ws, f"{name}-injector") is not None:
+            info(f"{name} is already injected, skipping.")
+        else:
+            to_inject.append((name, entry))
+
+    if not to_inject:
+        info("All declared tools are already injected.")
+        return
+
+    if dry_run:
+        info("Dry run — the following tools would be injected:")
+        for name, entry in to_inject:
+            kind = "custom" if entry else "registry"
+            info(f"  {name} ({kind})")
+        return
+
+    # Build ops: first tool with infra, rest without
+    all_ops = []
+    for i, (name, entry) in enumerate(to_inject):
+        all_ops.extend(build_inject_ops(name, ws, skip_infra=(i > 0), tool_entry=entry))
+
+    tool_names = ", ".join(name for name, _ in to_inject)
+    info(f"Injecting {tool_names}...")
+    patch_workspace(all_ops)
+    info(f"Injected {tool_names}. Workspace is restarting...")
 
 
 # ============================================================================
