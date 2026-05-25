@@ -180,6 +180,34 @@
         "postStart": ""
       }
     },
+    "gh": {
+      "description": "GitHub CLI",
+      "pattern": "init",
+      "src": "/usr/local/bin/gh",
+      "binary": "gh",
+      "patch": [
+        {
+          "op": "add",
+          "path": "/spec/template/components/-",
+          "value": {
+            "name": "gh-injector",
+            "container": {
+              "image": "quay.io/che-incubator/tools-injector/gh:next",
+              "command": ["/bin/cp"],
+              "args": ["/usr/local/bin/gh", "/injected-tools/gh"],
+              "memoryLimit": "128Mi",
+              "mountSources": false,
+              "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
+            }
+          }
+        }
+      ],
+      "editor": {
+        "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
+        "env": [],
+        "postStart": ""
+      }
+    },
     "python3": {
       "description": "Python3 interpreter",
       "pattern": "init",
