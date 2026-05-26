@@ -1,6 +1,8 @@
 # Stage 1: Get python3 + stdlib from Alpine
 FROM alpine:3.21 AS builder
 
+ARG PYTHON3_VERSION=3.12.11
+
 RUN apk add --no-cache python3 && \
     # Find the actual python3 binary (not the symlink)
     PYTHON_BIN=$(readlink -f /usr/bin/python3) && \
