@@ -122,9 +122,9 @@ jobs:
         id: latest_alpine
         run: |
           ALPINE_VER=$(grep '^FROM alpine:' "dockerfiles/python3/Dockerfile" | head -1 | sed 's/.*alpine://; s/ .*//')
-          RAW=$(docker run --rm "alpine:${ALPINE_VER}" apk info --no-cache python3 2>/dev/null | head -1)
-          # Extract version: "python3-3.12.11-r1" -> "3.12.11"
-          LATEST=$(echo "$RAW" | sed 's/^python3-//; s/-r[0-9]*$//')
+          RAW=$(docker run --rm "alpine:${ALPINE_VER}" sh -c 'apk update >/dev/null 2>&1 && apk policy python3 2>/dev/null | sed -n "s/^  \([0-9].*\):/\1/p" | head -1')
+          # Extract version: "3.12.13-r0" -> "3.12.13"
+          LATEST=$(echo "$RAW" | sed 's/-r[0-9]*$//')
           if [ -z "$LATEST" ]; then
             echo "::error::Failed to fetch python3 version from Alpine ${ALPINE_VER}"
             exit 1
@@ -231,20 +231,16 @@ jobs:
             RELEASE_URL="https://www.npmjs.com/package/${{ matrix.tool.package }}/v/${LATEST}"
           fi
 
-          BODY="## Version Bump
-**Tool:** ${TOOL}
-**Current:** ${CURRENT}
-**New:** ${LATEST}"
+          BODY="## Version Bump"
+          BODY="${BODY}"$'\n'"**Tool:** ${TOOL}"
+          BODY="${BODY}"$'\n'"**Current:** ${CURRENT}"
+          BODY="${BODY}"$'\n'"**New:** ${LATEST}"
 
           if [ -n "$RELEASE_URL" ]; then
-            BODY="${BODY}
-**Release:** ${RELEASE_URL}"
+            BODY="${BODY}"$'\n'"**Release:** ${RELEASE_URL}"
           fi
 
-          BODY="${BODY}
-
----
-*Automated by the version-bump workflow.*"
+          BODY="${BODY}"$'\n\n'"---"$'\n'"*Automated by the version-bump workflow.*"
 
           gh pr create \
             --head "${BRANCH}" \
