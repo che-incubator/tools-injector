@@ -206,10 +206,10 @@ Python3 comes from Alpine's `apk`. We track its version but the Dockerfile doesn
 - [ ] **Step 1: Look up current Alpine 3.21 python3 version**
 
 ```bash
-docker run --rm alpine:3.21 apk info --no-cache python3 2>/dev/null | head -1
+docker run --rm alpine:3.21 sh -c 'apk update >/dev/null 2>&1 && apk policy python3' | sed -n 's/^  \([0-9].*\):/\1/p' | head -1
 ```
 
-This returns something like `python3-3.12.11-r1`. Extract just the version: `3.12.11`.
+This queries repository metadata and returns something like `3.12.13-r0`. Extract just the version: `3.12.13`.
 
 - [ ] **Step 2: Add ARG to python3 Dockerfile**
 
@@ -379,11 +379,16 @@ jobs:
           matrix.tool.source == 'alpine'
         id: latest_alpine
         run: |
-          RAW=$(docker run --rm alpine:3.21 apk info --no-cache python3 2>/dev/null | head -1)
-          # Extract version: "python3-3.12.11-r1" -> "3.12.11"
-          LATEST=$(echo "$RAW" | sed 's/^python3-//; s/-r[0-9]*$//')
+          ALPINE_VER=$(grep '^FROM alpine:' "dockerfiles/python3/Dockerfile" | head -1 | sed 's/.*alpine://; s/ .*//')
+          RAW=$(docker run --rm "alpine:${ALPINE_VER}" sh -c 'apk update >/dev/null 2>&1 && apk policy python3 2>/dev/null | sed -n "s/^  \([0-9].*\):/\1/p" | head -1')
+          # Extract version: "3.12.13-r0" -> "3.12.13"
+          LATEST=$(echo "$RAW" | sed 's/-r[0-9]*$//')
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to fetch python3 version from Alpine ${ALPINE_VER}"
+            exit 1
+          fi
           echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
-          echo "Latest ${{ matrix.tool.name }} version: ${LATEST}"
+          echo "Latest ${{ matrix.tool.name }} version: ${LATEST} (Alpine ${ALPINE_VER})"
 
       - name: "Resolve latest version"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name

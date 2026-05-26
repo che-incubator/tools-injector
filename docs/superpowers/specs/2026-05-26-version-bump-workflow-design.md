@@ -45,7 +45,7 @@ The workflow uses a matrix strategy. Each matrix entry defines the tool name, so
 |---|---|---|
 | GitHub Releases | opencode, goose, claude-code, tmux, gh | `gh api repos/<owner>/<repo>/releases/latest --jq .tag_name` |
 | npm registry | kilocode, gemini-cli | `npm view <package> dist-tags.latest` |
-| Alpine apk | python3 | `docker run --rm alpine:3.21 apk info python3` |
+| Alpine apk | python3 | `docker run --rm alpine:3.21 sh -c 'apk update && apk policy python3'` |
 
 All detection methods return only stable releases (GitHub's `/releases/latest` excludes pre-releases; npm's `dist-tags.latest` is stable by definition).
 
