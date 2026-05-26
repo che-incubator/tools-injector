@@ -1,0 +1,255 @@
+#
+# Copyright (c) 2021 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+name: Version Bump
+
+on:
+  schedule:
+    - cron: '17 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: 'Specific tool to check (leave empty for all)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+
+  check-versions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool:
+          - name: opencode
+            source: github
+            repo: anomalyco/opencode
+            arg_name: OPENCODE_VERSION
+          - name: goose
+            source: github
+            repo: block/goose
+            arg_name: GOOSE_VERSION
+          - name: claude-code
+            source: github
+            repo: anthropics/claude-code
+            arg_name: CLAUDE_CODE_VERSION
+            strip_v: true
+          - name: tmux
+            source: github
+            repo: tmux/tmux
+            arg_name: TMUX_VERSION
+          - name: gh
+            source: github
+            repo: cli/cli
+            arg_name: GH_VERSION
+            strip_v: true
+          - name: kilocode
+            source: npm
+            package: "@kilocode/cli"
+            arg_name: KILOCODE_VERSION
+          - name: gemini-cli
+            source: npm
+            package: "@google/gemini-cli"
+            arg_name: GEMINI_CLI_VERSION
+          - name: python3
+            source: alpine
+            arg_name: PYTHON3_VERSION
+
+    steps:
+      - name: "Checkout source code"
+        if: inputs.tool == '' || inputs.tool == matrix.tool.name
+        uses: actions/checkout@v4
+
+      - name: "Read current version"
+        if: inputs.tool == '' || inputs.tool == matrix.tool.name
+        id: current
+        run: |
+          CURRENT=$(cat "dockerfiles/${{ matrix.tool.name }}/VERSION" | tr -d '[:space:]')
+          echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+          echo "Current ${{ matrix.tool.name }} version: ${CURRENT}"
+
+      - name: "Fetch latest version (GitHub)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'github'
+        id: latest_github
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(gh api "repos/${{ matrix.tool.repo }}/releases/latest" --jq '.tag_name')
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "::error::Failed to fetch latest release tag for ${{ matrix.tool.repo }}"
+            exit 1
+          fi
+          echo "Raw tag: ${TAG}"
+
+          if [ "${{ matrix.tool.strip_v }}" = "true" ]; then
+            LATEST="${TAG#v}"
+          else
+            LATEST="${TAG}"
+          fi
+
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ matrix.tool.name }} version: ${LATEST}"
+
+      - name: "Fetch latest version (npm)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'npm'
+        id: latest_npm
+        run: |
+          LATEST=$(npm view "${{ matrix.tool.package }}" dist-tags.latest)
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to fetch latest npm version for ${{ matrix.tool.package }}"
+            exit 1
+          fi
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ matrix.tool.name }} version: ${LATEST}"
+
+      - name: "Fetch latest version (Alpine)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'alpine'
+        id: latest_alpine
+        run: |
+          ALPINE_VER=$(grep '^FROM alpine:' "dockerfiles/python3/Dockerfile" | head -1 | sed 's/.*alpine://; s/ .*//')
+          RAW=$(docker run --rm "alpine:${ALPINE_VER}" apk info --no-cache python3 2>/dev/null | head -1)
+          # Extract version: "python3-3.12.11-r1" -> "3.12.11"
+          LATEST=$(echo "$RAW" | sed 's/^python3-//; s/-r[0-9]*$//')
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to fetch python3 version from Alpine ${ALPINE_VER}"
+            exit 1
+          fi
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ matrix.tool.name }} version: ${LATEST} (Alpine ${ALPINE_VER})"
+
+      - name: "Resolve latest version"
+        if: inputs.tool == '' || inputs.tool == matrix.tool.name
+        id: latest
+        run: |
+          if [ -n "${{ steps.latest_github.outputs.version }}" ]; then
+            echo "version=${{ steps.latest_github.outputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ steps.latest_npm.outputs.version }}" ]; then
+            echo "version=${{ steps.latest_npm.outputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ steps.latest_alpine.outputs.version }}" ]; then
+            echo "version=${{ steps.latest_alpine.outputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No version found"
+            exit 1
+          fi
+
+      - name: "Compare versions"
+        if: inputs.tool == '' || inputs.tool == matrix.tool.name
+        id: compare
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          LATEST="${{ steps.latest.outputs.version }}"
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "needs_bump=false" >> "$GITHUB_OUTPUT"
+            echo "${{ matrix.tool.name }} is up to date (${CURRENT})"
+          else
+            echo "needs_bump=true" >> "$GITHUB_OUTPUT"
+            echo "${{ matrix.tool.name }} needs bump: ${CURRENT} → ${LATEST}"
+          fi
+
+      - name: "Check for existing PR"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true'
+        id: existing_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="bump/${{ matrix.tool.name }}-${{ steps.latest.outputs.version }}"
+          EXISTING=$(gh pr list --head "${BRANCH}" --state open --json number --jq 'length')
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "PR already exists for ${BRANCH}, skipping"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Create bump branch and update files"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        env:
+          CURRENT: ${{ steps.current.outputs.version }}
+          LATEST: ${{ steps.latest.outputs.version }}
+          TOOL: ${{ matrix.tool.name }}
+          ARG_NAME: ${{ matrix.tool.arg_name }}
+        run: |
+          BRANCH="bump/${TOOL}-${LATEST}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+
+          # Update VERSION file
+          echo -n "${LATEST}" > "dockerfiles/${TOOL}/VERSION"
+
+          # Update Dockerfile ARG
+          sed -i "s/^ARG ${ARG_NAME}=.*/ARG ${ARG_NAME}=${LATEST}/" "dockerfiles/${TOOL}/Dockerfile"
+
+          git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile"
+          git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
+          git push origin "${BRANCH}"
+
+      - name: "Open pull request"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.current.outputs.version }}
+          LATEST: ${{ steps.latest.outputs.version }}
+          TOOL: ${{ matrix.tool.name }}
+        run: |
+          BRANCH="bump/${TOOL}-${LATEST}"
+
+          # Build release URL
+          RELEASE_URL=""
+          SOURCE="${{ matrix.tool.source }}"
+          STRIP_V="${{ matrix.tool.strip_v }}"
+          if [ "$SOURCE" = "github" ]; then
+            TAG="${LATEST}"
+            if [ "$STRIP_V" = "true" ]; then
+              TAG="v${LATEST}"
+            fi
+            RELEASE_URL="https://github.com/${{ matrix.tool.repo }}/releases/tag/${TAG}"
+          elif [ "$SOURCE" = "npm" ]; then
+            RELEASE_URL="https://www.npmjs.com/package/${{ matrix.tool.package }}/v/${LATEST}"
+          fi
+
+          BODY="## Version Bump
+**Tool:** ${TOOL}
+**Current:** ${CURRENT}
+**New:** ${LATEST}"
+
+          if [ -n "$RELEASE_URL" ]; then
+            BODY="${BODY}
+**Release:** ${RELEASE_URL}"
+          fi
+
+          BODY="${BODY}
+
+---
+*Automated by the version-bump workflow.*"
+
+          gh pr create \
+            --head "${BRANCH}" \
+            --base main \
+            --title "bump(${TOOL}): ${CURRENT} → ${LATEST}" \
+            --body "${BODY}" \
+            --label "automated" \
+            --label "version-bump"
