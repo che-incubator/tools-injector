@@ -178,16 +178,21 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: "Create bump branch and update files"
+      - name: "Create bump branch, push, and open PR"
         if: >-
           (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
           steps.compare.outputs.needs_bump == 'true' &&
           steps.existing_pr.outputs.exists == 'false'
         env:
+          GH_TOKEN: ${{ github.token }}
           CURRENT: ${{ steps.current.outputs.version }}
           LATEST: ${{ steps.latest.outputs.version }}
           TOOL: ${{ matrix.tool.name }}
           ARG_NAME: ${{ matrix.tool.arg_name }}
+          SOURCE: ${{ matrix.tool.source }}
+          STRIP_V: ${{ matrix.tool.strip_v }}
+          REPO: ${{ matrix.tool.repo }}
+          PACKAGE: ${{ matrix.tool.package }}
         run: |
           BRANCH="bump/${TOOL}-${LATEST}"
           git config user.name "github-actions[bot]"
@@ -204,31 +209,16 @@ jobs:
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
           git push --force-with-lease origin "${BRANCH}"
 
-      - name: "Open pull request"
-        if: >-
-          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
-          steps.compare.outputs.needs_bump == 'true' &&
-          steps.existing_pr.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CURRENT: ${{ steps.current.outputs.version }}
-          LATEST: ${{ steps.latest.outputs.version }}
-          TOOL: ${{ matrix.tool.name }}
-        run: |
-          BRANCH="bump/${TOOL}-${LATEST}"
-
           # Build release URL
           RELEASE_URL=""
-          SOURCE="${{ matrix.tool.source }}"
-          STRIP_V="${{ matrix.tool.strip_v }}"
           if [ "$SOURCE" = "github" ]; then
             TAG="${LATEST}"
             if [ "$STRIP_V" = "true" ]; then
               TAG="v${LATEST}"
             fi
-            RELEASE_URL="https://github.com/${{ matrix.tool.repo }}/releases/tag/${TAG}"
+            RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
           elif [ "$SOURCE" = "npm" ]; then
-            RELEASE_URL="https://www.npmjs.com/package/${{ matrix.tool.package }}/v/${LATEST}"
+            RELEASE_URL="https://www.npmjs.com/package/${PACKAGE}/v/${LATEST}"
           fi
 
           BODY="## Version Bump"
@@ -246,10 +236,15 @@ jobs:
           gh label create "automated" --description "Automated PR" --color "0e8a16" 2>/dev/null || true
           gh label create "version-bump" --description "Tool version update" --color "1d76db" 2>/dev/null || true
 
-          gh pr create \
+          # Open PR; delete branch if this fails to prevent orphans
+          if ! gh pr create \
             --head "${BRANCH}" \
             --base main \
             --title "bump(${TOOL}): ${CURRENT} → ${LATEST}" \
             --body "${BODY}" \
             --label "automated" \
-            --label "version-bump"
+            --label "version-bump"; then
+            echo "PR creation failed, cleaning up branch"
+            git push origin --delete "${BRANCH}" || true
+            exit 1
+          fi
