@@ -192,7 +192,7 @@ jobs:
           BRANCH="bump/${TOOL}-${LATEST}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "${BRANCH}"
+          git checkout -B "${BRANCH}"
 
           # Update VERSION file
           echo -n "${LATEST}" > "dockerfiles/${TOOL}/VERSION"
@@ -202,7 +202,7 @@ jobs:
 
           git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile"
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
-          git push origin "${BRANCH}"
+          git push --force-with-lease origin "${BRANCH}"
 
       - name: "Open pull request"
         if: >-
@@ -241,6 +241,10 @@ jobs:
           fi
 
           BODY="${BODY}"$'\n\n'"---"$'\n'"*Automated by the version-bump workflow.*"
+
+          # Ensure labels exist
+          gh label create "automated" --description "Automated PR" --color "0e8a16" 2>/dev/null || true
+          gh label create "version-bump" --description "Tool version update" --color "1d76db" 2>/dev/null || true
 
           gh pr create \
             --head "${BRANCH}" \
