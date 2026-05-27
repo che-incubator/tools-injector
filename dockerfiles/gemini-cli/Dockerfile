@@ -1,7 +1,9 @@
 # Stage 1: Install gemini-cli with Node.js
 FROM node:22-slim AS builder
 
-RUN npm install -g @google/gemini-cli && \
+ARG GEMINI_CLI_VERSION=0.43.0
+
+RUN npm install -g @google/gemini-cli@${GEMINI_CLI_VERSION} && \
     npm cache clean --force
 
 # Verify binary exists

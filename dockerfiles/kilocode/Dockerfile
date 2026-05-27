@@ -1,7 +1,9 @@
 # Stage 1: Install kilocode with Node.js
 FROM node:22-slim AS builder
 
-RUN npm install -g @kilocode/cli && \
+ARG KILOCODE_VERSION=7.3.1
+
+RUN npm install -g @kilocode/cli@${KILOCODE_VERSION} && \
     npm cache clean --force
 
 RUN which kilo
