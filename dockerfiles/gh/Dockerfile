@@ -1,5 +1,5 @@
 FROM alpine:3.21 AS builder
-ARG GH_VERSION=2.92.0
+ARG GH_VERSION=2.93.0
 ARG TARGETARCH
 RUN apk add --no-cache curl tar
 RUN case "$TARGETARCH" in \
