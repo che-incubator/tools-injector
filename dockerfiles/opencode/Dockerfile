@@ -3,7 +3,7 @@
 # which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG OPENCODE_VERSION=v1.15.13
+ARG OPENCODE_VERSION=v1.16.2
 ARG TARGETARCH
 
 RUN apk add --no-cache curl tar gzip
