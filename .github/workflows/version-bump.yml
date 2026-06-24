@@ -188,8 +188,9 @@ jobs:
           TOOL: ${{ matrix.tool.name }}
           LATEST: ${{ steps.latest.outputs.version }}
         run: |
+          CURRENT_BRANCH="bump/${TOOL}-${LATEST}"
           gh pr list --state open --label "version-bump" --json number,headRefName --jq \
-            ".[] | select(.headRefName | startswith(\"bump/${TOOL}-\")) | .number" | \
+            ".[] | select(.headRefName | startswith(\"bump/${TOOL}-\")) | select(.headRefName != \"${CURRENT_BRANCH}\") | .number" | \
           while read -r PR_NUM; do
             echo "Closing outdated PR #${PR_NUM} (superseded by ${TOOL} ${LATEST})"
             gh pr close "${PR_NUM}" --comment "Superseded by bump to ${LATEST}." --delete-branch
