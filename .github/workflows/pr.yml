@@ -12,10 +12,6 @@ on:
   pull_request:
     branches: ['*']
 
-permissions:
-  contents: read
-  pull-requests: read
-
 jobs:
 
   detect-changes:
@@ -24,13 +20,15 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
       has_tools: ${{ steps.set-matrix.outputs.has_tools }}
     steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: "Get changed files"
         id: changed
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
-            --paginate --jq '.[].filename' > changed_files.txt
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > changed_files.txt
           echo "Changed files:"
           cat changed_files.txt
 
