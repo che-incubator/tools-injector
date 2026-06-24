@@ -12,29 +12,69 @@ on:
   pull_request:
     branches: ['*']
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
 
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_tools: ${{ steps.set-matrix.outputs.has_tools }}
+    steps:
+      - name: "Get changed files"
+        id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename' > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
+
+      - name: "Build tool matrix from changed files"
+        id: set-matrix
+        run: |
+          TOOLS='opencode goose claude-code kilocode gemini-cli tmux python3 gh'
+          REBUILD_ALL=false
+
+          if grep -q '^\.github/workflows/pr\.yml' changed_files.txt; then
+            REBUILD_ALL=true
+          fi
+
+          MATRIX="["
+          FIRST=true
+          for TOOL in $TOOLS; do
+            if [ "$REBUILD_ALL" = "true" ] || grep -q "^dockerfiles/${TOOL}/" changed_files.txt; then
+              if [ "$FIRST" = "true" ]; then
+                FIRST=false
+              else
+                MATRIX="${MATRIX},"
+              fi
+              MATRIX="${MATRIX}{\"name\":\"${TOOL}\",\"dockerfile\":\"dockerfiles/${TOOL}\"}"
+            fi
+          done
+          MATRIX="${MATRIX}]"
+
+          if [ "$MATRIX" = "[]" ]; then
+            echo "has_tools=false" >> "$GITHUB_OUTPUT"
+            echo "No tool changes detected, skipping builds"
+          else
+            echo "has_tools=true" >> "$GITHUB_OUTPUT"
+            echo "Tools to build: ${MATRIX}"
+          fi
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
   build-tools:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_tools == 'true'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        tool:
-          - name: opencode
-            dockerfile: dockerfiles/opencode
-          - name: goose
-            dockerfile: dockerfiles/goose
-          - name: claude-code
-            dockerfile: dockerfiles/claude-code
-          - name: kilocode
-            dockerfile: dockerfiles/kilocode
-          - name: gemini-cli
-            dockerfile: dockerfiles/gemini-cli
-          - name: tmux
-            dockerfile: dockerfiles/tmux
-          - name: python3
-            dockerfile: dockerfiles/python3
-          - name: gh
-            dockerfile: dockerfiles/gh
+        tool: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
     env:
       IMAGE: quay.io/che-incubator/tools-injector/${{ matrix.tool.name }}
       TAG: pr-${{ github.event.pull_request.number }}
