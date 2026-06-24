@@ -16,6 +16,9 @@
       "pattern": "init",
       "src": "/usr/local/bin/opencode",
       "binary": "opencode",
+      "injector": {
+        "memoryLimit": "128Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -44,6 +47,9 @@
       "pattern": "init",
       "src": "/usr/local/bin/goose",
       "binary": "goose",
+      "injector": {
+        "memoryLimit": "128Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -72,6 +78,9 @@
       "pattern": "init",
       "src": "/usr/local/bin/claude",
       "binary": "claude",
+      "injector": {
+        "memoryLimit": "128Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -101,6 +110,9 @@
       "pattern": "bundle",
       "src": "/opt/kilocode",
       "binary": "kilo",
+      "injector": {
+        "memoryLimit": "256Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -129,6 +141,9 @@
       "pattern": "bundle",
       "src": "/opt/gemini-cli",
       "binary": "gemini",
+      "injector": {
+        "memoryLimit": "256Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -157,6 +172,9 @@
       "pattern": "init",
       "src": "/usr/local/bin/tmux",
       "binary": "tmux",
+      "injector": {
+        "memoryLimit": "128Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -213,6 +231,9 @@
       "pattern": "init",
       "src": "/usr/local/bin/python3",
       "binary": "python3",
+      "injector": {
+        "memoryLimit": "128Mi"
+      },
       "patch": [
         {
           "op": "add",
