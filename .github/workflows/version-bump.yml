@@ -178,6 +178,23 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: "Close outdated bump PRs"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOL: ${{ matrix.tool.name }}
+          LATEST: ${{ steps.latest.outputs.version }}
+        run: |
+          gh pr list --state open --label "version-bump" --json number,headRefName --jq \
+            ".[] | select(.headRefName | startswith(\"bump/${TOOL}-\")) | .number" | \
+          while read -r PR_NUM; do
+            echo "Closing outdated PR #${PR_NUM} (superseded by ${TOOL} ${LATEST})"
+            gh pr close "${PR_NUM}" --comment "Superseded by bump to ${LATEST}." --delete-branch
+          done
+
       - name: "Create bump branch and push"
         if: >-
           (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
