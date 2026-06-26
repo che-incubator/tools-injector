@@ -181,8 +181,7 @@ jobs:
       - name: "Close outdated bump PRs"
         if: >-
           (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
-          steps.compare.outputs.needs_bump == 'true' &&
-          steps.existing_pr.outputs.exists == 'false'
+          steps.compare.outputs.needs_bump == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           TOOL: ${{ matrix.tool.name }}
