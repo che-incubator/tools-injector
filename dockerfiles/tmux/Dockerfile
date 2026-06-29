@@ -1,7 +1,7 @@
 FROM alpine:3.21 AS builder
 
 ARG TARGETARCH
-ARG TMUX_VERSION=3.6b
+ARG TMUX_VERSION=3.7
 
 RUN ARCH=$(case "${TARGETARCH}" in amd64) echo "x86_64" ;; arm64) echo "arm64" ;; *) echo "${TARGETARCH}" ;; esac) && \
     wget -qO- "https://github.com/tmux/tmux-builds/releases/download/v${TMUX_VERSION}/tmux-${TMUX_VERSION}-linux-${ARCH}.tar.gz" \
