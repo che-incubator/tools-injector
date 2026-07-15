@@ -32,6 +32,8 @@ jobs:
           - name: gemini-cli
             dockerfile: dockerfiles/gemini-cli
             platforms: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+          - name: cursor-cli
+            dockerfile: dockerfiles/cursor-cli
           - name: tmux
             dockerfile: dockerfiles/tmux
           - name: python3

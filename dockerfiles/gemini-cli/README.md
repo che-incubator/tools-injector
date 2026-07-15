@@ -8,7 +8,7 @@ UBI10-based init container image containing [Gemini CLI](https://github.com/goog
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: gemini-cli-injector
     container:
       image: quay.io/che-incubator/tools-injector/gemini-cli:next
