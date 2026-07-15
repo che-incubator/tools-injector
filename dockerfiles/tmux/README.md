@@ -8,7 +8,7 @@ UBI10-based init container image containing a pre-built [tmux](https://github.co
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: tmux-injector
     container:
       image: quay.io/che-incubator/tools-injector/tmux:next

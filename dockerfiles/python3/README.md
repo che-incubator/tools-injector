@@ -10,7 +10,7 @@ Used as a fallback runtime for `inject-tool.py` in workspace containers that lac
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: python3-injector
     container:
       image: quay.io/che-incubator/tools-injector/python3:next

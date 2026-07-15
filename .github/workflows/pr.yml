@@ -38,7 +38,7 @@ jobs:
       - name: "Build tool matrix from changed files"
         id: set-matrix
         run: |
-          TOOLS='opencode goose claude-code kilocode gemini-cli tmux python3 gh'
+          TOOLS='opencode goose claude-code kilocode gemini-cli cursor-cli tmux python3 gh'
           REBUILD_ALL=false
 
           if grep -q '^\.github/workflows/pr\.yml' changed_files.txt; then

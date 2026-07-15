@@ -8,7 +8,7 @@ UBI10-based init container image containing the [Claude Code](https://docs.anthr
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: claude-code-injector
     container:
       image: quay.io/che-incubator/tools-injector/claude-code:next
