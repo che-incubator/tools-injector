@@ -1,6 +1,8 @@
 # Stage 1: install gemini-cli on a multi-arch Node image.
-# ubi10/nodejs-22-minimal supports amd64, arm64, ppc64le, and s390x.
-FROM registry.access.redhat.com/ubi10/nodejs-22-minimal:10.0 AS npm-installer
+# ubi9/nodejs-22-minimal supports amd64, arm64, ppc64le, and s390x.
+# UBI9 is used instead of UBI10 because UBI10 requires x86-64-v3 CPU support,
+# which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
+FROM registry.access.redhat.com/ubi9/nodejs-22-minimal:1 AS npm-installer
 
 ARG GEMINI_CLI_VERSION=0.49.0
 
