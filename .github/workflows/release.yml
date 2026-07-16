@@ -31,6 +31,7 @@ jobs:
             dockerfile: dockerfiles/kilocode
           - name: gemini-cli
             dockerfile: dockerfiles/gemini-cli
+            platforms: linux/amd64,linux/arm64,linux/s390x
           - name: tmux
             dockerfile: dockerfiles/tmux
           - name: python3
@@ -64,6 +65,6 @@ jobs:
         with:
           context: .
           file: ${{ matrix.tool.dockerfile }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.tool.platforms || 'linux/amd64,linux/arm64' }}
           push: true
           tags: ${{ env.IMAGE }}:${{ env.TAG }}
