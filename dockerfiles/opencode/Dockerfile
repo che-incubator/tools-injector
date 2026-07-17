@@ -1,9 +1,11 @@
+ARG OPENCODE_VERSION=v1.17.11
+
 # Stage 1: Download and extract opencode
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
 # which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG OPENCODE_VERSION=v1.17.11
+ARG OPENCODE_VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl tar gzip

@@ -1,9 +1,11 @@
+ARG CLAUDE_CODE_VERSION=2.1.193
+
 # Stage 1: Download claude-code binary
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
 # which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG CLAUDE_CODE_VERSION=2.1.193
+ARG CLAUDE_CODE_VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl
