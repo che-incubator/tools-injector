@@ -1,9 +1,11 @@
+ARG OPENCODE_VERSION=v1.17.11
+
 # Stage 1: Download and extract opencode
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
 # which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG OPENCODE_VERSION=v1.17.11
+ARG OPENCODE_VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl tar gzip
@@ -24,6 +26,9 @@ RUN set -e && \
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /usr/local/bin/opencode /usr/local/bin/opencode
+
+ARG OPENCODE_VERSION
+ENV TOOL_NAME=opencode TOOL_VERSION=${OPENCODE_VERSION}
 
 LABEL org.opencontainers.image.description="Opencode CLI tool for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"

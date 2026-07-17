@@ -1,9 +1,11 @@
+ARG CLAUDE_CODE_VERSION=2.1.193
+
 # Stage 1: Download claude-code binary
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
 # which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG CLAUDE_CODE_VERSION=2.1.193
+ARG CLAUDE_CODE_VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl
@@ -22,6 +24,9 @@ RUN set -e && \
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /usr/local/bin/claude /usr/local/bin/claude
+
+ARG CLAUDE_CODE_VERSION
+ENV TOOL_NAME=claude-code TOOL_VERSION=${CLAUDE_CODE_VERSION}
 
 LABEL org.opencontainers.image.description="Claude Code CLI tool for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"

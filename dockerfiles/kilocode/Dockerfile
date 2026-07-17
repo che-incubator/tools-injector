@@ -1,7 +1,9 @@
+ARG KILOCODE_VERSION=7.3.54
+
 # Stage 1: Install kilocode with Node.js
 FROM node:22-slim AS builder
 
-ARG KILOCODE_VERSION=7.3.54
+ARG KILOCODE_VERSION
 
 RUN npm install -g @kilocode/cli@${KILOCODE_VERSION} && \
     npm cache clean --force
@@ -19,6 +21,9 @@ RUN mkdir -p /bundle/bin /bundle/lib && \
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /bundle /opt/kilocode
+
+ARG KILOCODE_VERSION
+ENV TOOL_NAME=kilocode TOOL_VERSION=${KILOCODE_VERSION}
 
 LABEL org.opencontainers.image.description="Kilo Code CLI init container for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"

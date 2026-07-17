@@ -1,9 +1,11 @@
+ARG GOOSE_VERSION=v1.39.0
+
 # Stage 1: Download and extract goose
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
 # which QEMU cannot emulate when cross-building amd64 images on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG GOOSE_VERSION=v1.39.0
+ARG GOOSE_VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl tar bzip2
@@ -47,6 +49,9 @@ FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=libgomp /out/libgomp.so* /usr/lib64/
 COPY --from=builder /usr/local/bin/goose /usr/local/bin/goose
+
+ARG GOOSE_VERSION
+ENV TOOL_NAME=goose TOOL_VERSION=${GOOSE_VERSION}
 
 LABEL org.opencontainers.image.description="Goose CLI tool for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"
