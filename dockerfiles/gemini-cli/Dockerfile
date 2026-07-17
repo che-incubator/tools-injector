@@ -26,6 +26,7 @@ RUN apk add --no-cache curl xz && \
       amd64) NODE_ARCH="x64" ;; \
       arm64) NODE_ARCH="arm64" ;; \
       s390x) NODE_ARCH="s390x" ;; \
+      ppc64le) NODE_ARCH="ppc64le" ;; \
       *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac && \
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
