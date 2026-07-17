@@ -25,5 +25,8 @@ FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /usr/local/bin/opencode /usr/local/bin/opencode
 
+ARG OPENCODE_VERSION
+ENV TOOL_NAME=opencode TOOL_VERSION=${OPENCODE_VERSION}
+
 LABEL org.opencontainers.image.description="Opencode CLI tool for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"

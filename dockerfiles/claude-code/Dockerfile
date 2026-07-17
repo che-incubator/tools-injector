@@ -23,5 +23,8 @@ FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /usr/local/bin/claude /usr/local/bin/claude
 
+ARG CLAUDE_CODE_VERSION
+ENV TOOL_NAME=claude-code TOOL_VERSION=${CLAUDE_CODE_VERSION}
+
 LABEL org.opencontainers.image.description="Claude Code CLI tool for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"

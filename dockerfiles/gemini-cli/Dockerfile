@@ -41,5 +41,8 @@ COPY --from=node-provider /usr/local/bin/node /opt/gemini-cli/bin/node
 COPY --from=npm-installer /opt/app-root/src/.npm-global/lib/node_modules /opt/gemini-cli/lib/node_modules
 COPY --from=npm-installer /opt/app-root/src/.npm-global/bin/gemini /opt/gemini-cli/bin/gemini
 
+ARG GEMINI_CLI_VERSION
+ENV TOOL_NAME=gemini-cli TOOL_VERSION=${GEMINI_CLI_VERSION}
+
 LABEL org.opencontainers.image.description="Gemini CLI init container for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"
