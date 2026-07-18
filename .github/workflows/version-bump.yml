@@ -216,6 +216,13 @@ jobs:
 
           git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile"
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
+
+          python3 scripts/generate-dashboard-registry.py
+          if ! git diff --quiet dashboard/registry.json; then
+            git add dashboard/registry.json
+            git commit -s -m "chore: regenerate dashboard registry for ${TOOL} ${LATEST}"
+          fi
+
           git push --force-with-lease origin "${BRANCH}"
 
       - name: "Set up QEMU"

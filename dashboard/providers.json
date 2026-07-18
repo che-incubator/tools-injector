@@ -1,0 +1,82 @@
+{
+  "providers": [
+    {
+      "id": "anthropic/claude",
+      "name": "Claude",
+      "publisher": "Anthropic",
+      "description": "Anthropic Claude AI coding assistant for terminal — autonomous coding, debugging, and codebase exploration.",
+      "docsUrl": "https://docs.anthropic.com/claude/reference/getting-started-with-the-api",
+      "icon": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/claudecode-color.svg",
+      "tags": ["Tech-Preview"]
+    },
+    {
+      "id": "google/gemini",
+      "name": "Gemini",
+      "publisher": "Google",
+      "description": "Google Gemini AI assistant for the terminal — chat, code generation, and agentic workflows.",
+      "docsUrl": "https://ai.google.dev/gemini-api/docs/quickstart",
+      "icon": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/geminicli.svg",
+      "tags": ["Tech-Preview"]
+    },
+    {
+      "id": "block/goose",
+      "name": "Goose",
+      "publisher": "Block",
+      "description": "Open-source AI coding agent by Block — autonomous task execution and code generation.",
+      "docsUrl": "https://github.com/block/goose",
+      "icon": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/goose.svg",
+      "tags": ["Tech-Preview"]
+    },
+    {
+      "id": "kilocode/kilocode",
+      "name": "Kilo Code",
+      "publisher": "Kilo Code",
+      "description": "AI coding assistant with VS Code extension backend — autonomous coding and task execution.",
+      "docsUrl": "https://kilocode.ai",
+      "icon": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/kilocode.svg",
+      "tags": ["Tech-Preview"]
+    },
+    {
+      "id": "opencodeai/opencode",
+      "name": "OpenCode",
+      "publisher": "opencode.ai",
+      "description": "Open-source terminal AI coding agent supporting 75+ LLM providers including Claude, GPT, Gemini, and local models.",
+      "docsUrl": "https://opencode.ai",
+      "icon": "https://cdn.jsdelivr.net/npm/@lobehub/icons-static-svg@latest/icons/opencode.svg",
+      "tags": ["Tech-Preview"]
+    }
+  ],
+  "tools": {
+    "claude-code": {
+      "providerId": "anthropic/claude",
+      "name": "Claude Code",
+      "url": "https://claude.ai/code",
+      "envVarName": "ANTHROPIC_API_KEY"
+    },
+    "gemini-cli": {
+      "providerId": "google/gemini",
+      "name": "Gemini CLI",
+      "url": "https://github.com/google-gemini/gemini-cli",
+      "envVarName": "GEMINI_API_KEY"
+    },
+    "goose": {
+      "providerId": "block/goose",
+      "name": "Goose",
+      "url": "https://github.com/block/goose",
+      "envVarName": "GOOSE_API_KEY"
+    },
+    "kilocode": {
+      "providerId": "kilocode/kilocode",
+      "name": "Kilo Code",
+      "url": "https://kilocode.ai",
+      "envVarName": "KILOCODE_API_KEY"
+    },
+    "opencode": {
+      "providerId": "opencodeai/opencode",
+      "name": "OpenCode",
+      "url": "https://opencode.ai",
+      "envVarName": "OPENCODE_API_KEY"
+    }
+  },
+  "defaultAiProviders": ["anthropic/claude"]
+}

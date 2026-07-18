@@ -126,3 +126,11 @@ docker-build-all: $(addprefix docker-build-,$(TOOLS)) ## Build all tool images (
 
 .PHONY: docker-push-all
 docker-push-all: $(addprefix docker-push-,$(TOOLS)) ## Push all tool images (multi-arch)
+
+# ==============================================================================
+# Dashboard registry
+# ==============================================================================
+
+.PHONY: generate-dashboard-registry
+generate-dashboard-registry: ## Regenerate dashboard/registry.json from inject-tool + providers
+	python3 scripts/generate-dashboard-registry.py

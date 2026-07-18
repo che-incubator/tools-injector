@@ -64,12 +64,33 @@ kubectl label configmap "${REGISTRY_CM_NAME}" \
   -n "${NAMESPACE}" \
   --overwrite
 
+DASHBOARD_CM_NAME="ai-tool-registry"
+DASHBOARD_REGISTRY="${SCRIPT_DIR}/../dashboard/registry.json"
+
+if [ -f "${DASHBOARD_REGISTRY}" ]; then
+  echo ""
+  echo "Creating ConfigMap '${DASHBOARD_CM_NAME}' in namespace '${NAMESPACE}'..."
+
+  kubectl create configmap "${DASHBOARD_CM_NAME}" \
+    --from-file=registry.json="${DASHBOARD_REGISTRY}" \
+    -n "${NAMESPACE}" \
+    --dry-run=client -o yaml | kubectl apply -f -
+
+  echo "Labeling dashboard registry ConfigMap..."
+  kubectl label configmap "${DASHBOARD_CM_NAME}" \
+    app.kubernetes.io/component=ai-tool-registry \
+    app.kubernetes.io/part-of=che.eclipse.org \
+    -n "${NAMESPACE}" \
+    --overwrite
+fi
+
 echo ""
 echo "Done."
 echo ""
 echo "ConfigMaps created in namespace '${NAMESPACE}':"
 echo "  inject-tool             — automounted into every workspace at /usr/local/bin/"
 echo "  tools-injector-registry — exposes tool registry to Che Dashboard"
+echo "  ai-tool-registry        — AI provider registry for Dashboard AI selector"
 echo ""
 echo "Usage (from inside a workspace terminal):"
 echo "  inject-tool --help"
