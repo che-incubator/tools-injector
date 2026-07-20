@@ -1,4 +1,4 @@
-ARG OPENCODE_VERSION=v1.17.11
+ARG OPENCODE_VERSION=v1.18.3
 
 # Stage 1: Download and extract opencode
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
