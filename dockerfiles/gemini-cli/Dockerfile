@@ -1,4 +1,4 @@
-ARG GEMINI_CLI_VERSION=0.49.0
+ARG GEMINI_CLI_VERSION=0.51.0
 
 # Stage 1: install gemini-cli on a multi-arch Node image.
 # ubi9/nodejs-22-minimal supports amd64, arm64, ppc64le, and s390x.
