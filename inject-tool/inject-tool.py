@@ -402,9 +402,14 @@ def build_inject_ops(tool, ws, skip_infra=False):
             )
             cmdline = (
                 f"mkdir -p /injected-tools/bin && "
-                f"ln -sf {symlink_target} /injected-tools/bin/{binary_name} && "
-                f"{path_cmd}"
+                f"ln -sf {symlink_target} /injected-tools/bin/{binary_name}"
             )
+            if pattern == "bundle":
+                cmdline += (
+                    f" && if ! command -v node >/dev/null 2>&1; then"
+                    f" ln -sf /injected-tools/{tool}/bin/node /injected-tools/bin/node; fi"
+                )
+            cmdline += f" && {path_cmd}"
             setup_cmd = reg_tool["editor"].get("postStart", "")
             if setup_cmd:
                 cmdline = f"{setup_cmd} && {cmdline}"
