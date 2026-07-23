@@ -48,22 +48,6 @@ kubectl annotate configmap "${CM_NAME}" \
   -n "${NAMESPACE}" \
   --overwrite
 
-REGISTRY_CM_NAME="tools-injector-registry"
-
-echo ""
-echo "Creating ConfigMap '${REGISTRY_CM_NAME}' in namespace '${NAMESPACE}'..."
-
-kubectl create configmap "${REGISTRY_CM_NAME}" \
-  --from-file=registry.json="${SCRIPT_DIR}/registry.json" \
-  -n "${NAMESPACE}" \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-echo "Labeling registry ConfigMap..."
-kubectl label configmap "${REGISTRY_CM_NAME}" \
-  app.kubernetes.io/part-of=tools-injector \
-  -n "${NAMESPACE}" \
-  --overwrite
-
 DASHBOARD_CM_NAME="ai-tool-registry"
 DASHBOARD_REGISTRY="${SCRIPT_DIR}/../dashboard/registry.json"
 
@@ -89,7 +73,6 @@ echo "Done."
 echo ""
 echo "ConfigMaps created in namespace '${NAMESPACE}':"
 echo "  inject-tool             — automounted into every workspace at /usr/local/bin/"
-echo "  tools-injector-registry — exposes tool registry to Che Dashboard"
 if [ -f "${DASHBOARD_REGISTRY}" ]; then
   echo "  ai-tool-registry        — AI provider registry for Dashboard AI selector"
 fi

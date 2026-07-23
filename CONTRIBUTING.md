@@ -206,41 +206,38 @@ Add `strip_v: true` if the upstream tag has a `v` prefix but your VERSION file d
 
 If the tool is an AI agent (not a utility), it also needs to appear in the Che Dashboard AI Provider Selector.
 
-### 6. `dashboard/providers.json`
+### 6. `dashboard/registry.json`
 
-Add the provider (if new) and the tool mapping:
+Add the provider (if new) to the `providers` array and the tool to the `tools` array:
 
+**Provider entry** (skip if the provider already exists):
 ```json
 {
-  "providers": [
-    {
-      "id": "<vendor>/<product>",
-      "name": "<Display Name>",
-      "publisher": "<Company>",
-      "description": "<one-line description>",
-      "docsUrl": "<API docs URL>",
-      "icon": "<icon URL>",
-      "tags": ["Tech-Preview"]
-    }
-  ],
-  "tools": {
-    "<tool-name>": {
-      "providerId": "<vendor>/<product>",
-      "name": "<Display Name>",
-      "url": "<tool homepage>",
-      "envVarName": "<API_KEY_ENV_VAR>"
-    }
-  }
+  "id": "<vendor>/<product>",
+  "name": "<Display Name>",
+  "publisher": "<Company>",
+  "description": "<one-line description>",
+  "docsUrl": "<API docs URL>",
+  "icon": "<icon URL>",
+  "tags": ["Tech-Preview"]
 }
 ```
 
-### 7. Regenerate `dashboard/registry.json`
-
-```bash
-python3 scripts/generate-dashboard-registry.py
+**Tool entry:**
+```json
+{
+  "providerId": "<vendor>/<product>",
+  "tag": "next",
+  "name": "<Display Name>",
+  "url": "<tool homepage>",
+  "binary": "<binary>",
+  "pattern": "init",
+  "injectorImage": "quay.io/che-incubator/tools-injector/<tool-name>:next",
+  "envVarName": "<API_KEY_ENV_VAR>"
+}
 ```
 
-This merges `inject-tool/registry.json` (technical fields) with `dashboard/providers.json` (branding) and writes `dashboard/registry.json`. Commit the generated file — CI validates it matches the generator output.
+The `binary` and `pattern` fields must match what you set in `inject-tool/registry.json`. CI validates this on every PR.
 
 ## Verification Checklist
 
@@ -248,5 +245,4 @@ This merges `inject-tool/registry.json` (technical fields) with `dashboard/provi
 - [ ] `docker inspect test` shows correct `TOOL_NAME` and `TOOL_VERSION` env vars
 - [ ] `inject-tool/registry.json` is valid JSON
 - [ ] Tool list matches in all 4 locations (Makefile, pr.yml, release.yml, version-bump.yml)
-- [ ] For AI tools: `python3 scripts/generate-dashboard-registry.py` runs without errors
-- [ ] For AI tools: `git diff --exit-code dashboard/registry.json` passes after regeneration
+- [ ] For AI tools: `make validate-dashboard-registry` passes

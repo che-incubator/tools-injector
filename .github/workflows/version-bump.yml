@@ -217,10 +217,14 @@ jobs:
           git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile"
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
 
-          make generate-dashboard-registry
-          if ! git diff --quiet dashboard/registry.json; then
-            git add dashboard/registry.json
-            git commit -s -m "chore: regenerate dashboard registry for ${TOOL} ${LATEST}"
+          if jq -e --arg slug "${TOOL}" '.tools[] | select(.injectorImage | contains($slug))' dashboard/registry.json >/dev/null 2>&1; then
+            jq --arg slug "${TOOL}" --arg tag "next" \
+              '(.tools[] | select(.injectorImage | contains($slug))).injectorImage |= sub(":[^:]+$"; ":" + $tag)' \
+              dashboard/registry.json > dashboard/registry.json.tmp && mv dashboard/registry.json.tmp dashboard/registry.json
+            if ! git diff --quiet dashboard/registry.json; then
+              git add dashboard/registry.json
+              git commit -s -m "chore: update dashboard registry tag for ${TOOL}"
+            fi
           fi
 
           git push --force-with-lease origin "${BRANCH}"
