@@ -90,7 +90,9 @@ echo ""
 echo "ConfigMaps created in namespace '${NAMESPACE}':"
 echo "  inject-tool             — automounted into every workspace at /usr/local/bin/"
 echo "  tools-injector-registry — exposes tool registry to Che Dashboard"
-echo "  ai-tool-registry        — AI provider registry for Dashboard AI selector"
+if [ -f "${DASHBOARD_REGISTRY}" ]; then
+  echo "  ai-tool-registry        — AI provider registry for Dashboard AI selector"
+fi
 echo ""
 echo "Usage (from inside a workspace terminal):"
 echo "  inject-tool --help"

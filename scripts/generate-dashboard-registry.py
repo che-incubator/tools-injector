@@ -14,9 +14,9 @@ OUTPUT = os.path.join(ROOT_DIR, "dashboard", "registry.json")
 
 
 def main():
-    with open(INJECT_REGISTRY) as f:
+    with open(INJECT_REGISTRY, encoding="utf-8") as f:
         inject = json.load(f)
-    with open(PROVIDERS) as f:
+    with open(PROVIDERS, encoding="utf-8") as f:
         providers = json.load(f)
 
     registry_base = inject["registry"]
@@ -66,7 +66,7 @@ def main():
         "defaultAiProviders": providers["defaultAiProviders"],
     }
 
-    with open(OUTPUT, "w") as f:
+    with open(OUTPUT, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
         f.write("\n")
 

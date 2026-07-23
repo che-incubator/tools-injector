@@ -62,7 +62,7 @@ LABEL org.opencontainers.image.description="<description>" \
 ```
 
 Notes:
-- The version ARG must be declared **before the first FROM** (global scope) so it's available in all stages.
+- The version ARG must be declared **before the first FROM** (global scope) and then **re-declared without a default after each FROM** that uses it. Global ARGs are available in `FROM` expressions but not inside stages unless re-declared.
 - Alpine is used for builder stages because UBI10 requires x86-64-v3 CPU support, which QEMU cannot emulate when cross-building.
 - `TOOL_NAME` and `TOOL_VERSION` env vars are required — downstream CI reads them via `docker inspect`.
 
@@ -70,7 +70,7 @@ Notes:
 
 Single line with the bare version string. Must match the `ARG` default in the Dockerfile.
 
-```
+```text
 1.2.3
 ```
 
