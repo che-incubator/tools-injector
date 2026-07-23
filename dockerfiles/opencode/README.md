@@ -8,7 +8,7 @@ UBI10-based init container image containing the [opencode](https://github.com/an
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: opencode-injector
     container:
       image: quay.io/che-incubator/tools-injector/opencode:next

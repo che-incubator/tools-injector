@@ -8,7 +8,7 @@ UBI10-based init container image containing [Kilo Code CLI](https://github.com/n
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: kilocode-injector
     container:
       image: quay.io/che-incubator/tools-injector/kilocode:next

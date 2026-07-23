@@ -6,7 +6,7 @@
       {
         "op": "add",
         "path": "/spec/template/components/-",
-        "value": { "name": "injected-tools", "volume": { "size": "256Mi" } }
+        "value": { "name": "injected-tools", "volume": { "size": "512Mi" } }
       }
     ]
   },
@@ -165,6 +165,37 @@
         "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
         "env": [{ "name": "GEMINI_CLI_HOME", "value": "/tmp/gemini-home" }],
         "postStart": "mkdir -p /tmp/gemini-home/.gemini && echo '{\"projects\":{}}' > /tmp/gemini-home/.gemini/projects.json"
+      }
+    },
+    "cursor-cli": {
+      "description": "Cursor Agent CLI",
+      "pattern": "bundle",
+      "src": "/opt/cursor-cli",
+      "binary": "agent",
+      "injector": {
+        "memoryLimit": "512Mi"
+      },
+      "patch": [
+        {
+          "op": "add",
+          "path": "/spec/template/components/-",
+          "value": {
+            "name": "cursor-cli-injector",
+            "container": {
+              "image": "quay.io/che-incubator/tools-injector/cursor-cli:next",
+              "command": ["/bin/sh"],
+              "args": ["-c", "cp -a /opt/cursor-cli/. /injected-tools/cursor-cli/"],
+              "memoryLimit": "512Mi",
+              "mountSources": false,
+              "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
+            }
+          }
+        }
+      ],
+      "editor": {
+        "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
+        "env": [],
+        "postStart": "mkdir -p \"${XDG_CACHE_HOME:-$HOME/.cache}/cursor-compile-cache\" && mkdir -p /injected-tools/bin && ln -sf /injected-tools/cursor-cli/bin/cursor-agent /injected-tools/bin/cursor-agent"
       }
     },
     "tmux": {
