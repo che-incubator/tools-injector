@@ -82,9 +82,9 @@ jobs:
           persist-credentials: false
       - name: "Regenerate and check for drift"
         run: |
-          python3 scripts/generate-dashboard-registry.py
+          make generate-dashboard-registry
           git diff --exit-code dashboard/registry.json || {
-            echo "::error::dashboard/registry.json is stale. Run: python3 scripts/generate-dashboard-registry.py"
+            echo "::error::dashboard/registry.json is stale. Run: make generate-dashboard-registry"
             exit 1
           }
 
