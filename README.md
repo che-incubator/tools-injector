@@ -59,8 +59,6 @@ See [inject-tool/README.md](inject-tool/README.md) for details.
 
 ## Setup
 
-### Production — cluster-wide deployment
-
 Run once in the Che operator namespace. The Che operator replicates inject-tool to all user namespaces automatically:
 
 ```bash
@@ -72,18 +70,6 @@ This creates two ConfigMaps:
 - **`ai-tool-registry`** — the dashboard AI registry (read by the Dashboard AI Provider Selector)
 
 To update inject-tool: edit the files, re-run `setup.sh`. The operator syncs changes to all user namespaces. Users must restart their workspace to pick up updates.
-
-### Development — per-namespace deployment
-
-For developing or testing inject-tool locally without Che operator replication:
-
-```bash
-inject-tool/setup-dev.sh <your-namespace>
-```
-
-Creates the inject-tool ConfigMap with DWO automount labels only — no operator replication. Edit files locally, re-run the script, restart workspace.
-
-> **Note:** On clusters where `setup.sh` was already run, the operator replicates `inject-tool` to all user namespaces. Running `setup-dev.sh` in a namespace that already has the replicated copy will be overwritten by the operator's reconciler. Use `setup-dev.sh` on clusters without production setup.
 
 ### Customizing the AI registry
 

@@ -249,18 +249,8 @@ The `binary` and `pattern` fields must match what you set in `inject-tool/regist
 
 ## Deploying to a Cluster
 
-### Production (cluster-wide)
-
 ```bash
 inject-tool/setup.sh <operator-namespace>
 ```
 
 The Che operator replicates the inject-tool ConfigMap to all user namespaces. Re-run after modifying inject-tool files or `dashboard/registry.json`.
-
-### Development (per-namespace)
-
-```bash
-inject-tool/setup-dev.sh <your-namespace>
-```
-
-Creates a local ConfigMap without operator replication. Use on clusters where `setup.sh` has NOT been run.
