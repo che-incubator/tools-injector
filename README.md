@@ -59,26 +59,40 @@ See [inject-tool/README.md](inject-tool/README.md) for details.
 
 ## Setup
 
-Deploy `inject-tool` and the dashboard AI registry to a Che namespace (requires `kubectl` or `oc` with cluster access):
+### Production — cluster-wide deployment
+
+Run once in the Che operator namespace. The Che operator replicates inject-tool to all user namespaces automatically:
 
 ```bash
-inject-tool/setup.sh <namespace>
+inject-tool/setup.sh <operator-namespace>
 ```
 
-This creates two ConfigMaps in the namespace:
-- **`inject-tool`** — automounted into every workspace at `/usr/local/bin/` via DWO labels (contains the CLI shim, Python script, and `inject-tool/registry.json`)
-- **`ai-tool-registry`** — the dashboard AI registry (contains `dashboard/registry.json`, labeled `app.kubernetes.io/component=ai-tool-registry, app.kubernetes.io/part-of=che.eclipse.org`)
+This creates two ConfigMaps:
+- **`inject-tool`** — labeled for Che operator replication (`workspaces-config`) and DWO automount. The operator syncs it to every user namespace; DWO mounts the files at `/usr/local/bin/` in every workspace.
+- **`ai-tool-registry`** — the dashboard AI registry (read by the Dashboard AI Provider Selector)
 
-After setup, `inject-tool` is available in every new or restarted workspace, and the Dashboard AI Provider Selector shows all configured AI tools.
+To update inject-tool: edit the files, re-run `setup.sh`. The operator syncs changes to all user namespaces. Users must restart their workspace to pick up updates.
+
+### Development — per-namespace deployment
+
+For developing or testing inject-tool locally without Che operator replication:
+
+```bash
+inject-tool/setup-dev.sh <your-namespace>
+```
+
+Creates the inject-tool ConfigMap with DWO automount labels only — no operator replication. Edit files locally, re-run the script, restart workspace.
+
+> **Note:** On clusters where `setup.sh` was already run, the operator replicates `inject-tool` to all user namespaces. Running `setup-dev.sh` in a namespace that already has the replicated copy will be overwritten by the operator's reconciler. Use `setup-dev.sh` on clusters without production setup.
 
 ### Customizing the AI registry
 
 Edit `dashboard/registry.json` to add, remove, or modify AI tools and providers. Then re-run `setup.sh` to update the ConfigMap. The dashboard picks up changes automatically — no restart needed.
 
-To offer only specific tools, remove the others from the `tools` array. To hide the AI selector entirely, delete the `ai-tool-registry` ConfigMap:
+To hide the AI selector entirely, delete the `ai-tool-registry` ConfigMap:
 
 ```bash
-kubectl delete configmap ai-tool-registry -n <namespace>
+kubectl delete configmap ai-tool-registry -n <operator-namespace>
 ```
 
 ## Building
