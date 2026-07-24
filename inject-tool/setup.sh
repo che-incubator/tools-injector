@@ -1,28 +1,24 @@
 #!/usr/bin/env bash
-# setup.sh <namespace>
+# setup.sh <operator-namespace>
 #
-# Creates a ConfigMap with the inject-tool shim and Python3 script,
-# labeled for DWO automount. After running this, every workspace in the
-# namespace will have the tool available at /usr/local/bin/inject-tool.
+# Production setup: deploys inject-tool and the AI tool registry to
+# the Che operator namespace. The Che operator's WorkspacesConfigReconciler
+# replicates the inject-tool ConfigMap to all user namespaces automatically.
+#
+# For development/testing in a personal namespace, use setup-dev.sh instead.
 set -euo pipefail
 
-NAMESPACE="${1:?Usage: $0 <namespace>}"
+NAMESPACE="${1:?Usage: $0 <operator-namespace>}"
 CM_NAME="inject-tool"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-[[ -f "${SCRIPT_DIR}/inject-tool" ]] || {
-  echo "ERROR: inject-tool shim not found in ${SCRIPT_DIR}" >&2
-  exit 1
-}
-[[ -f "${SCRIPT_DIR}/inject-tool.py" ]] || {
-  echo "ERROR: inject-tool.py not found in ${SCRIPT_DIR}" >&2
-  exit 1
-}
-[[ -f "${SCRIPT_DIR}/registry.json" ]] || {
-  echo "ERROR: registry.json not found in ${SCRIPT_DIR}" >&2
-  exit 1
-}
+for f in inject-tool inject-tool.py registry.json; do
+  [[ -f "${SCRIPT_DIR}/${f}" ]] || {
+    echo "ERROR: ${f} not found in ${SCRIPT_DIR}" >&2
+    exit 1
+  }
+done
 
 echo "Creating ConfigMap '${CM_NAME}' in namespace '${NAMESPACE}'..."
 
@@ -33,8 +29,10 @@ kubectl create configmap "${CM_NAME}" \
   -n "${NAMESPACE}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Labeling for DWO automount..."
+echo "Labeling for Che operator replication + DWO automount..."
 kubectl label configmap "${CM_NAME}" \
+  app.kubernetes.io/part-of=che.eclipse.org \
+  app.kubernetes.io/component=workspaces-config \
   controller.devfile.io/mount-to-devworkspace=true \
   controller.devfile.io/watch-configmap=true \
   -n "${NAMESPACE}" \
@@ -72,10 +70,11 @@ echo ""
 echo "Done."
 echo ""
 echo "ConfigMaps created in namespace '${NAMESPACE}':"
-echo "  inject-tool             — automounted into every workspace at /usr/local/bin/"
+echo "  inject-tool      — replicated to all user namespaces by Che operator,"
+echo "                     automounted into every workspace at /usr/local/bin/"
 if [ -f "${DASHBOARD_REGISTRY}" ]; then
-  echo "  ai-tool-registry        — AI provider registry for Dashboard AI selector"
+  echo "  ai-tool-registry — AI provider registry for Dashboard AI selector"
 fi
 echo ""
-echo "Usage (from inside a workspace terminal):"
-echo "  inject-tool --help"
+echo "The Che operator will sync 'inject-tool' to user namespaces within ~30s."
+echo "Users must restart their workspace to pick up new or updated files."
