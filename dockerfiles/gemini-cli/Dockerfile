@@ -42,7 +42,10 @@ FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=node-provider /usr/local/bin/node /opt/gemini-cli/bin/node
 COPY --from=npm-installer /opt/app-root/src/.npm-global/lib/node_modules /opt/gemini-cli/lib/node_modules
-COPY --from=npm-installer /opt/app-root/src/.npm-global/bin/gemini /opt/gemini-cli/bin/gemini
+
+# Symlink bin/gemini → the bundle entry point so ESM chunk imports resolve
+# correctly (the chunks live alongside gemini.js in the bundle/ directory).
+RUN ln -sf ../lib/node_modules/@google/gemini-cli/bundle/gemini.js /opt/gemini-cli/bin/gemini
 
 ARG GEMINI_CLI_VERSION
 ENV TOOL_NAME=gemini-cli TOOL_VERSION=${GEMINI_CLI_VERSION}

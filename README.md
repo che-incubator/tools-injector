@@ -9,9 +9,10 @@ Container images and `inject-tool` CLI for injecting AI CLI tools into Eclipse C
 | opencode | init | `quay.io/che-incubator/tools-injector/opencode:next` | amd64, arm64 |
 | goose | init | `quay.io/che-incubator/tools-injector/goose:next` | amd64, arm64 |
 | claude-code | init | `quay.io/che-incubator/tools-injector/claude-code:next` | amd64, arm64 |
-| gemini-cli | bundle | `quay.io/che-incubator/tools-injector/gemini-cli:next` | amd64, arm64 |
+| gemini-cli | bundle | `quay.io/che-incubator/tools-injector/gemini-cli:next` | amd64, arm64, s390x, ppc64le |
 | kilocode | bundle | `quay.io/che-incubator/tools-injector/kilocode:next` | amd64, arm64 |
 | tmux | init | `quay.io/che-incubator/tools-injector/tmux:next` | amd64, arm64 |
+| gh | init | `quay.io/che-incubator/tools-injector/gh:next` | amd64, arm64 |
 | python3 | init | `quay.io/che-incubator/tools-injector/python3:next` | amd64, arm64 |
 
 **Init pattern**: Single binary copied to a shared volume via preStart init container.
@@ -27,38 +28,72 @@ Container images used as DevWorkspace editor or main components must meet these 
 
 > **Note:** Most injected tools are statically linked and work on any Linux distro, including Alpine (musl libc). If a tool fails with a dynamic linker error on Alpine, it may need to be rebuilt as a static binary.
 
-## Setup
+## How Tool Injection Works
 
-Deploy `inject-tool` and the tool registry to a Che namespace (requires `kubectl` or `oc` with cluster access):
+There are two ways to inject tools into DevWorkspaces:
 
-```bash
-inject-tool/setup.sh <namespace>
-```
+### 1. Che Dashboard — at workspace creation (pre-start)
 
-This creates two ConfigMaps in the namespace:
-- **`inject-tool`** — automounted into every workspace at `/usr/local/bin/` via DWO labels
-- **`tools-injector-registry`** — exposes the tool registry to Che Dashboard (labeled `app.kubernetes.io/part-of=tools-injector`)
+The Che Dashboard reads an `ai-tool-registry` ConfigMap to display the **AI Provider Selector** on the Create Workspace page. When a user selects AI tools, the dashboard adds init containers and lifecycle commands to the DevWorkspace spec before the pod starts.
 
-After setup, `inject-tool` is available in every new or restarted workspace in that namespace.
+The dashboard handles:
+- Creating init containers from the tool's `injectorImage`
+- Symlinking binaries into `/injected-tools/bin/` and adding it to `$PATH`
+- Running `setupCommand` (e.g., creating config directories)
+- Mounting the shared `injected-tools` volume on the editor container
 
-## inject-tool CLI
+Tools are available on first workspace boot — no restart needed.
 
-A Python3 CLI (deployed via ConfigMap) that automates tool injection into running DevWorkspaces:
+### 2. inject-tool CLI — in a running workspace (post-start)
+
+The `inject-tool` CLI patches the DevWorkspace CR via the Kubernetes API, which triggers a workspace restart with the injected tools:
 
 ```bash
 inject-tool list              # List available tools
 inject-tool <tool>            # Inject a tool
 inject-tool remove <tool>     # Remove an injected tool
-inject-tool <tool> --hot      # Hot-inject into running workspace
+inject-tool <tool> --hot      # Hot-inject without restart
 ```
 
-Features:
-- Auto PATH setup via `$HOME/.bashrc`
-- Auto env vars per tool (TOOL_ENV registry)
-- Auto config pre-seeding (TOOL_SETUP registry)
-- Auto memory bump +512Mi for bundle tools
-
 See [inject-tool/README.md](inject-tool/README.md) for details.
+
+## Setup
+
+### Production — cluster-wide deployment
+
+Run once in the Che operator namespace. The Che operator replicates inject-tool to all user namespaces automatically:
+
+```bash
+inject-tool/setup.sh <operator-namespace>
+```
+
+This creates two ConfigMaps:
+- **`inject-tool`** — labeled for Che operator replication (`workspaces-config`) and DWO automount. The operator syncs it to every user namespace; DWO mounts the files at `/usr/local/bin/` in every workspace.
+- **`ai-tool-registry`** — the dashboard AI registry (read by the Dashboard AI Provider Selector)
+
+To update inject-tool: edit the files, re-run `setup.sh`. The operator syncs changes to all user namespaces. Users must restart their workspace to pick up updates.
+
+### Development — per-namespace deployment
+
+For developing or testing inject-tool locally without Che operator replication:
+
+```bash
+inject-tool/setup-dev.sh <your-namespace>
+```
+
+Creates the inject-tool ConfigMap with DWO automount labels only — no operator replication. Edit files locally, re-run the script, restart workspace.
+
+> **Note:** On clusters where `setup.sh` was already run, the operator replicates `inject-tool` to all user namespaces. Running `setup-dev.sh` in a namespace that already has the replicated copy will be overwritten by the operator's reconciler. Use `setup-dev.sh` on clusters without production setup.
+
+### Customizing the AI registry
+
+Edit `dashboard/registry.json` to add, remove, or modify AI tools and providers. Then re-run `setup.sh` to update the ConfigMap. The dashboard picks up changes automatically — no restart needed.
+
+To hide the AI selector entirely, delete the `ai-tool-registry` ConfigMap:
+
+```bash
+kubectl delete configmap ai-tool-registry -n <operator-namespace>
+```
 
 ## Building
 
