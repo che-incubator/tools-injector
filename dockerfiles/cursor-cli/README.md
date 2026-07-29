@@ -41,5 +41,5 @@ Set `CURSOR_API_KEY` in the workspace environment, or run `agent auth` interacti
 Pinned in `VERSION` and overridable at build time:
 
 ```bash
-CURSOR_CLI_VERSION=2026.07.13-7fe37d2 make docker-build-local-cursor-cli
+CURSOR_CLI_VERSION=2026.07.23-e383d2b make docker-build-local-cursor-cli
 ```

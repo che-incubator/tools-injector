@@ -8,14 +8,14 @@
 
 **Tech Stack:** Alpine builder (cross-arch) → UBI10 minimal runtime → RFC 6902 JSON Patch via `inject-tool` (bundle pattern).
 
-**Status:** Implemented locally. Pinned version `2026.07.13-7fe37d2`. Podman build verified on `linux/arm64`. Che end-to-end test pending.
+**Status:** Implemented locally. Pinned version `2026.07.23-e383d2b`. Podman build verified on `linux/arm64`. Che end-to-end test pending.
 
 ## Global Constraints
 
 - Tool name: `cursor-cli` (folder, registry key, image name)
 - Injection pattern: `bundle` (same as `gemini-cli`, `kilocode`)
 - Version pinning: `CURSOR_CLI_VERSION` build arg + `dockerfiles/cursor-cli/VERSION`
-- Pinned version: `2026.07.13-7fe37d2` (latest lab at time of implementation; matches `curl https://cursor.com/install?channel=lab`)
+- Pinned version: `2026.07.23-e383d2b` (latest lab at time of implementation; matches `curl https://cursor.com/install?channel=lab`)
 - Release channel: `lab` (only channel with working install URLs today; `stable` returns HTTP 400)
 - Download URL: `https://downloads.cursor.com/${CHANNEL}/${VERSION}/linux/${ARCH}/agent-cli-package.tar.gz`
 - Arch mapping: Docker `amd64` → `x64`, `arm64` → `arm64`
@@ -47,7 +47,7 @@ Cursor's install script (`curl https://cursor.com/install | bash`):
 |--------|------|----------------|--------|
 | Create | `dockerfiles/cursor-cli/install.sh` | Download tarball, extract, create bin symlinks | Done |
 | Create | `dockerfiles/cursor-cli/Dockerfile` | Multi-stage build: Alpine builder → UBI10 runtime | Done |
-| Create | `dockerfiles/cursor-cli/VERSION` | Pinned version string (`2026.07.13-7fe37d2`) | Done |
+| Create | `dockerfiles/cursor-cli/VERSION` | Pinned version string (`2026.07.23-e383d2b`) | Done |
 | Create | `dockerfiles/cursor-cli/README.md` | DevWorkspace YAML example, auth notes | Done |
 | Modify | `inject-tool/registry.json` | Bump `infrastructure.patch` volume to `512Mi`; add `cursor-cli` bundle entry | Done |
 | Modify | `dockerfiles/*/README.md` | Update DevWorkspace YAML examples: `256Mi` → `512Mi` for `injected-tools` volume | Done |
@@ -91,7 +91,7 @@ ln -sf ../app/cursor-agent "$DEST/bin/cursor-agent"
 
 | Variable | Source | Default |
 |----------|--------|---------|
-| `CURSOR_CLI_VERSION` | `ARG` / `VERSION` file | `2026.07.13-7fe37d2` |
+| `CURSOR_CLI_VERSION` | `ARG` / `VERSION` file | `2026.07.23-e383d2b` |
 | `CURSOR_CLI_CHANNEL` | `ARG` | `lab` |
 | `TARGETARCH` | BuildKit | auto |
 | `CURSOR_CLI_DEST` | optional override | `/opt/cursor-cli` |
@@ -129,7 +129,7 @@ After injection into a DevWorkspace, `inject-tool` creates additional symlinks:
 # Alpine builder: UBI10 requires x86-64-v3, QEMU can't emulate amd64 on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG CURSOR_CLI_VERSION=2026.07.13-7fe37d2
+ARG CURSOR_CLI_VERSION=2026.07.23-e383d2b
 ARG CURSOR_CLI_CHANNEL=lab
 ARG TARGETARCH
 
@@ -162,7 +162,7 @@ make docker-build-cursor-cli
 
 # Override version at build time
 podman build -f dockerfiles/cursor-cli/Dockerfile \
-  --build-arg CURSOR_CLI_VERSION=2026.07.13-7fe37d2 \
+  --build-arg CURSOR_CLI_VERSION=2026.07.23-e383d2b \
   -t quay.io/che-incubator/tools-injector/cursor-cli:next .
 ```
 
@@ -252,7 +252,7 @@ Bundle tools automatically receive +512Mi editor memory bump in `inject-tool.py`
 
 ### Version availability
 
-Pinned versions must exist on CDN. `2026.07.13-7fe37d2` verified downloadable for `linux/arm64` during build. Bumping `VERSION` requires confirming the tarball exists for both `x64` and `arm64`.
+Pinned versions must exist on CDN. `2026.07.23-e383d2b` verified downloadable for `linux/arm64` during build. Bumping `VERSION` requires confirming the tarball exists for both `x64` and `arm64`.
 
 ### Auto-update
 
@@ -272,7 +272,7 @@ Cursor CLI auto-updates by default. In injected workspaces, the bundle is static
 - [x] **Step 3:** Smoke-test locally outside Docker:
 
 ```bash
-export CURSOR_CLI_VERSION=2026.07.13-7fe37d2
+export CURSOR_CLI_VERSION=2026.07.23-e383d2b
 export TARGETARCH=arm64  # or amd64
 export CURSOR_CLI_DEST=/tmp/cursor-cli-test
 sh dockerfiles/cursor-cli/install.sh
@@ -290,7 +290,7 @@ Expected: tarball extracts, both symlinks created. (`--version` only works insid
 - Create: `dockerfiles/cursor-cli/README.md`
 
 - [x] **Step 1:** Write Dockerfile per design above
-- [x] **Step 2:** Write `VERSION` with pinned version `2026.07.13-7fe37d2` matching Dockerfile default ARG
+- [x] **Step 2:** Write `VERSION` with pinned version `2026.07.23-e383d2b` matching Dockerfile default ARG
 - [x] **Step 3:** Write README with DevWorkspace YAML example (mirror `gemini-cli/README.md`), using `size: 512Mi` for `injected-tools`, auth notes (`CURSOR_API_KEY`, `agent auth`), and both command names
 - [x] **Step 4:** Build locally:
 
@@ -310,7 +310,7 @@ podman run --rm quay.io/che-incubator/tools-injector/cursor-cli:next \
   /opt/cursor-cli/bin/cursor-agent --version
 ```
 
-Expected: `2026.07.13-7fe37d2` from both. **Verified.**
+Expected: `2026.07.23-e383d2b` from both. **Verified.**
 
 ---
 
@@ -404,7 +404,7 @@ agent -p "hello"
 ## Test Plan Checklist
 
 - [x] `install.sh` downloads and lays out bundle (arm64)
-- [x] Both `agent` and `cursor-agent` return `2026.07.13-7fe37d2` inside built image
+- [x] Both `agent` and `cursor-agent` return `2026.07.23-e383d2b` inside built image
 - [x] Podman build succeeds (`linux/arm64`)
 - [ ] `make docker-build-cursor-cli` succeeds (multi-arch)
 - [x] `registry.json` valid; `cursor-cli` entry present; volume `512Mi`
@@ -422,7 +422,7 @@ agent -p "hello"
 |----------|--------|
 | Install approach | Minimal repo-owned `install.sh` (not official `curl \| bash`) |
 | Version pinning | `CURSOR_CLI_VERSION` build arg + `VERSION` file |
-| Pinned version | `2026.07.13-7fe37d2` (latest lab at implementation time) |
+| Pinned version | `2026.07.23-e383d2b` (latest lab at implementation time) |
 | Release channel | `lab` (default) |
 | Injection pattern | `bundle` |
 | Exposed commands | Both `agent` and `cursor-agent` in `bin/` |
