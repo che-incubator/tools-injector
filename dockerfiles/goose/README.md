@@ -8,7 +8,7 @@ UBI10-based init container image containing the [goose](https://github.com/block
 components:
   - name: injected-tools
     volume:
-      size: 256Mi
+      size: 512Mi
   - name: goose-injector
     container:
       image: quay.io/che-incubator/tools-injector/goose:next
