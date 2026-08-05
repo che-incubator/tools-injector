@@ -19,7 +19,7 @@ esac
 URL="https://downloads.cursor.com/${CHANNEL}/${VERSION}/linux/${DL_ARCH}/agent-cli-package.tar.gz"
 
 mkdir -p "$DEST/app" "$DEST/bin"
-ARCHIVE="$(mktemp "${TMPDIR:-/tmp}/cursor-cli-XXXXXX.tar.gz")"
+ARCHIVE="$(mktemp /tmp/cursor-cli-XXXXXX)"
 curl -fsSL --connect-timeout 30 --max-time 300 "$URL" -o "$ARCHIVE"
 tar --strip-components=1 -xzf "$ARCHIVE" -C "$DEST/app"
 rm -f "$ARCHIVE"
