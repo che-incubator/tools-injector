@@ -14,9 +14,20 @@ on:
   workflow_dispatch:
     inputs:
       tool:
-        description: 'Specific tool to check (leave empty for all)'
+        description: 'Specific tool to check'
         required: false
-        type: string
+        type: choice
+        options:
+          - ''
+          - opencode
+          - goose
+          - claude-code
+          - kilocode
+          - gemini-cli
+          - cursor-cli
+          - tmux
+          - python3
+          - gh
 
 permissions:
   contents: write
@@ -26,6 +37,7 @@ jobs:
 
   check-versions:
     runs-on: ubuntu-latest
+    if: inputs.tool == '' || inputs.tool == matrix.tool.name
     strategy:
       fail-fast: false
       matrix:
