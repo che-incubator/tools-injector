@@ -19,5 +19,9 @@ FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /opt/cursor-cli /opt/cursor-cli
 
+ARG CURSOR_CLI_VERSION
+ENV TOOL_NAME=cursor-cli \
+    TOOL_VERSION=${CURSOR_CLI_VERSION}
+
 LABEL org.opencontainers.image.description="Cursor CLI init container for DevWorkspace injection" \
       org.opencontainers.image.source="https://github.com/che-incubator/tools-injector"

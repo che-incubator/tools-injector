@@ -6,7 +6,7 @@
       {
         "op": "add",
         "path": "/spec/template/components/-",
-        "value": { "name": "injected-tools", "volume": { "size": "512Mi" } }
+        "value": { "name": "injected-tools", "volume": { "size": "1Gi" } }
       }
     ]
   },
@@ -195,7 +195,7 @@
       "editor": {
         "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
         "env": [],
-        "postStart": "mkdir -p \"${XDG_CACHE_HOME:-$HOME/.cache}/cursor-compile-cache\" && ln -sf /injected-tools/cursor-cli/bin/cursor-agent /injected-tools/bin/cursor-agent"
+        "postStart": "mkdir -p \"${XDG_CACHE_HOME:-$HOME/.cache}/cursor-compile-cache\"; ln -sf /injected-tools/cursor-cli/bin/cursor-agent /injected-tools/bin/cursor-agent"
       }
     },
     "tmux": {
