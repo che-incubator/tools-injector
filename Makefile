@@ -1,7 +1,14 @@
 # Container tool detection (follows DWO pattern)
 ifneq ($(shell command -v docker 2>/dev/null),)
-  DOCKER := docker
-  BUILDX_AVAILABLE := $(shell docker buildx version >/dev/null 2>&1 && echo true || echo false)
+  ifeq ($(shell docker info >/dev/null 2>&1 && echo reachable || echo unreachable),reachable)
+    DOCKER := docker
+    BUILDX_AVAILABLE := $(shell docker buildx version >/dev/null 2>&1 && echo true || echo false)
+  else ifneq ($(shell command -v podman 2>/dev/null),)
+    DOCKER := podman
+    BUILDX_AVAILABLE := false
+  else
+    $(error Docker daemon not reachable and Podman not found. Start the Docker daemon or install Podman.)
+  endif
 else ifneq ($(shell command -v podman 2>/dev/null),)
   DOCKER := podman
   BUILDX_AVAILABLE := false
@@ -20,6 +27,9 @@ TAG ?= next
 
 # Helper to derive image name from tool name
 _IMG = $(IMAGE_REGISTRY)/tools-injector/$1:$(TAG)
+
+# Platform for local builds (default linux/amd64, override with PLATFORM=linux/arm64)
+PLATFORM ?= linux/amd64
 
 .PHONY: help
 help: ## Show this help
@@ -60,6 +70,12 @@ endif
 # ==============================================================================
 # Per-tool targets
 # ==============================================================================
+
+.PHONY: docker-build-local-%
+docker-build-local-%: ## Build for platform (default linux/amd64) — quick local testing, set PLATFORM=linux/arm64 for native arm64
+	@echo "Building local image for $* using $(DOCKER)"
+	$(DOCKER) build --platform $(PLATFORM) -f dockerfiles/$*/Dockerfile \
+		-t $(IMAGE_REGISTRY)/tools-injector/$*:$(TAG) .
 
 .PHONY: docker-build-%
 docker-build-%: ## Build multi-arch (amd64+arm64) images locally, no push (e.g., make docker-build-opencode)
@@ -111,11 +127,6 @@ endif
 docker-%: ## Build and push multi-arch image (shorthand) (e.g., make docker-opencode)
 	$(MAKE) docker-build-$*
 	$(MAKE) docker-push-$*
-
-.PHONY: docker-build-local-%
-docker-build-local-%: ## Build for current platform only — quick local testing (e.g., make docker-build-local-opencode)
-	$(DOCKER) build -f dockerfiles/$*/Dockerfile \
-		-t $(IMAGE_REGISTRY)/tools-injector/$*:$(TAG) .
 
 # ==============================================================================
 # Aggregate targets
