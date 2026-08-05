@@ -60,6 +60,11 @@ jobs:
             source: npm
             package: "@google/gemini-cli"
             arg_name: GEMINI_CLI_VERSION
+          - name: cursor-cli
+            source: custom-install-script
+            script_url: "https://cursor.com/install"
+            version_grep: '(?<=downloads\.cursor\.com/lab/)[^/]+'
+            arg_name: CURSOR_CLI_VERSION
           - name: python3
             source: alpine
             arg_name: PYTHON3_VERSION
@@ -132,6 +137,25 @@ jobs:
           echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
           echo "Latest ${{ matrix.tool.name }} version: ${LATEST} (Alpine ${ALPINE_VER})"
 
+      - name: "Fetch latest version (custom-install-script)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'custom-install-script'
+        id: latest_custom
+        run: |
+          SCRIPT=$(curl -fsSL "${{ matrix.tool.script_url }}")
+          if [ -z "$SCRIPT" ]; then
+            echo "::error::Failed to fetch install script from ${{ matrix.tool.script_url }}"
+            exit 1
+          fi
+          LATEST=$(echo "$SCRIPT" | grep -oP '${{ matrix.tool.version_grep }}' | head -1)
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to extract version from ${{ matrix.tool.script_url }}"
+            exit 1
+          fi
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${{ matrix.tool.name }} version: ${LATEST}"
+
       - name: "Resolve latest version"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
         id: latest
@@ -142,6 +166,8 @@ jobs:
             echo "version=${{ steps.latest_npm.outputs.version }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ steps.latest_alpine.outputs.version }}" ]; then
             echo "version=${{ steps.latest_alpine.outputs.version }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ steps.latest_custom.outputs.version }}" ]; then
+            echo "version=${{ steps.latest_custom.outputs.version }}" >> "$GITHUB_OUTPUT"
           else
             echo "No version found"
             exit 1
