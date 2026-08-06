@@ -37,7 +37,6 @@ jobs:
 
   check-versions:
     runs-on: ubuntu-latest
-    if: inputs.tool == '' || inputs.tool == matrix.tool.name
     strategy:
       fail-fast: false
       matrix:
