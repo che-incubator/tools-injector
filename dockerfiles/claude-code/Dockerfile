@@ -1,4 +1,4 @@
-ARG CLAUDE_CODE_VERSION=2.1.223
+ARG CLAUDE_CODE_VERSION=2.1.251
 
 # Stage 1: Download claude-code binary
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
