@@ -2,7 +2,7 @@
 # Alpine builder: UBI10 requires x86-64-v3, QEMU can't emulate amd64 on ARM hosts.
 FROM alpine:3.21 AS builder
 
-ARG CURSOR_CLI_VERSION=2026.08.04-aaa8809
+ARG CURSOR_CLI_VERSION=2026.09.02-c22c1a3
 ARG CURSOR_CLI_CHANNEL=lab
 ARG TARGETARCH
 
