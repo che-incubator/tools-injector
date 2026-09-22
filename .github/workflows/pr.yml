@@ -73,6 +73,16 @@ jobs:
           fi
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
 
+  validate-dashboard-registry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: "Validate dashboard registry"
+        run: make validate-dashboard-registry
+
   build-tools:
     needs: detect-changes
     if: needs.detect-changes.outputs.has_tools == 'true'
