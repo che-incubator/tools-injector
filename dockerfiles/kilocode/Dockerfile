@@ -1,4 +1,4 @@
-ARG KILOCODE_VERSION=7.7.6
+ARG KILOCODE_VERSION=7.8.1
 
 # Stage 1: Install kilocode with Node.js
 FROM node:22-slim AS builder
