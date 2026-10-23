@@ -92,7 +92,7 @@ jobs:
         id: current
         run: |
           CURRENT=$(cat "dockerfiles/${{ matrix.tool.name }}/VERSION" | tr -d '[:space:]')
-          # Later steps splice this value into scripts via ${{ }}, so refuse anything
+          # Later steps splice this value into scripts through GitHub expressions, so refuse anything
           # that is not plain version text (this also rejects an empty or missing file).
           if [[ ! "$CURRENT" =~ ^[A-Za-z0-9._+-]+$ ]]; then
             echo "::error::Missing or unexpected characters in dockerfiles/${{ matrix.tool.name }}/VERSION"
@@ -172,7 +172,7 @@ jobs:
             exit 1
           fi
           # The version comes from an external source and later steps splice it into
-          # scripts via ${{ }}, so refuse anything that is not plain version text.
+          # scripts through GitHub expressions, so refuse anything that is not plain version text.
           if [[ ! "$VERSION" =~ ^[A-Za-z0-9._+-]+$ ]]; then
             echo "::error::Unexpected characters in the version fetched for ${{ matrix.tool.name }}"
             exit 1
