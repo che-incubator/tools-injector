@@ -170,19 +170,24 @@ jobs:
       - name: "Resolve latest version"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
         id: latest
+        env:
+          FROM_GITHUB: ${{ steps.latest_github.outputs.version }}
+          FROM_NPM: ${{ steps.latest_npm.outputs.version }}
+          FROM_ALPINE: ${{ steps.latest_alpine.outputs.version }}
+          FROM_CUSTOM: ${{ steps.latest_custom.outputs.version }}
         run: |
-          if [ -n "${{ steps.latest_github.outputs.version }}" ]; then
-            echo "version=${{ steps.latest_github.outputs.version }}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ steps.latest_npm.outputs.version }}" ]; then
-            echo "version=${{ steps.latest_npm.outputs.version }}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ steps.latest_alpine.outputs.version }}" ]; then
-            echo "version=${{ steps.latest_alpine.outputs.version }}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ steps.latest_custom.outputs.version }}" ]; then
-            echo "version=${{ steps.latest_custom.outputs.version }}" >> "$GITHUB_OUTPUT"
-          else
+          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_ALPINE:-${FROM_CUSTOM}}}}"
+          if [ -z "$VERSION" ]; then
             echo "No version found"
             exit 1
           fi
+          # The version comes from an external source and later steps splice it into
+          # scripts via ${{ }}, so refuse anything that is not plain version text.
+          if [[ ! "$VERSION" =~ ^[A-Za-z0-9._+-]+$ ]]; then
+            echo "::error::Unexpected characters in the version fetched for ${{ matrix.tool.name }}"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: "Compare versions"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
