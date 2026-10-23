@@ -1,6 +1,6 @@
 # python3 injector
 
-UBI10-based init container image containing Python3 + stdlib extracted from Alpine.
+UBI10-based init container image containing Python3 + stdlib extracted from the official `python:<version>-alpine` image.
 
 Used as a fallback runtime for `inject-tool.py` in workspace containers that lack python3.
 
