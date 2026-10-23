@@ -90,6 +90,12 @@ jobs:
         id: current
         run: |
           CURRENT=$(cat "dockerfiles/${{ matrix.tool.name }}/VERSION" | tr -d '[:space:]')
+          # Later steps splice this value into scripts via ${{ }}, so refuse anything
+          # that is not plain version text (this also rejects an empty or missing file).
+          if [[ ! "$CURRENT" =~ ^[A-Za-z0-9._+-]+$ ]]; then
+            echo "::error::Missing or unexpected characters in dockerfiles/${{ matrix.tool.name }}/VERSION"
+            exit 1
+          fi
           echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
           echo "Current ${{ matrix.tool.name }} version: ${CURRENT}"
 
