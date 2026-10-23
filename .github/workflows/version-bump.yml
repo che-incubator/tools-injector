@@ -54,10 +54,12 @@ jobs:
             repo: anthropics/claude-code
             arg_name: CLAUDE_CODE_VERSION
             strip_v: true
+          # repo must be the one the Dockerfile downloads binaries from (tmux-builds), not upstream tmux/tmux
           - name: tmux
             source: github
-            repo: tmux/tmux
+            repo: tmux/tmux-builds
             arg_name: TMUX_VERSION
+            strip_v: true
           - name: gh
             source: github
             repo: cli/cli
