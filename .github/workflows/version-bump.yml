@@ -178,7 +178,7 @@ jobs:
         run: |
           VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_ALPINE:-${FROM_CUSTOM}}}}"
           if [ -z "$VERSION" ]; then
-            echo "No version found"
+            echo "::error::No version found for ${{ matrix.tool.name }}"
             exit 1
           fi
           # The version comes from an external source and later steps splice it into
