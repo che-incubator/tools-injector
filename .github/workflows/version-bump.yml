@@ -77,7 +77,9 @@ jobs:
             version_grep: '(?<=downloads\.cursor\.com/lab/)[^/]+'
             arg_name: CURSOR_CLI_VERSION
           - name: python3
-            source: alpine
+            source: custom-install-script
+            script_url: "https://hub.docker.com/v2/repositories/library/python/tags?name=3.13.&page_size=100"
+            version_grep: '3\.13\.\d+(?=-alpine3\.23")'
             arg_name: PYTHON3_VERSION
 
     steps:
@@ -131,23 +133,6 @@ jobs:
           echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
           echo "Latest ${{ matrix.tool.name }} version: ${LATEST}"
 
-      - name: "Fetch latest version (Alpine)"
-        if: >-
-          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
-          matrix.tool.source == 'alpine'
-        id: latest_alpine
-        run: |
-          ALPINE_VER=$(grep '^FROM alpine:' "dockerfiles/python3/Dockerfile" | head -1 | sed 's/.*alpine://; s/ .*//')
-          RAW=$(docker run --rm "alpine:${ALPINE_VER}" sh -c 'apk update >/dev/null 2>&1 && apk policy python3 2>/dev/null | sed -n "s/^  \([0-9].*\):/\1/p" | head -1')
-          # Extract version: "3.12.13-r0" -> "3.12.13"
-          LATEST=$(echo "$RAW" | sed 's/-r[0-9]*$//')
-          if [ -z "$LATEST" ]; then
-            echo "::error::Failed to fetch python3 version from Alpine ${ALPINE_VER}"
-            exit 1
-          fi
-          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
-          echo "Latest ${{ matrix.tool.name }} version: ${LATEST} (Alpine ${ALPINE_VER})"
-
       - name: "Fetch latest version (custom-install-script)"
         if: >-
           (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
@@ -159,7 +144,7 @@ jobs:
             echo "::error::Failed to fetch install script from ${{ matrix.tool.script_url }}"
             exit 1
           fi
-          LATEST=$(echo "$SCRIPT" | grep -oP '${{ matrix.tool.version_grep }}' | head -1)
+          LATEST=$(echo "$SCRIPT" | grep -oP '${{ matrix.tool.version_grep }}' | sort -V | tail -1)
           if [ -z "$LATEST" ]; then
             echo "::error::Failed to extract version from ${{ matrix.tool.script_url }}"
             exit 1
@@ -175,8 +160,6 @@ jobs:
             echo "version=${{ steps.latest_github.outputs.version }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ steps.latest_npm.outputs.version }}" ]; then
             echo "version=${{ steps.latest_npm.outputs.version }}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ steps.latest_alpine.outputs.version }}" ]; then
-            echo "version=${{ steps.latest_alpine.outputs.version }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ steps.latest_custom.outputs.version }}" ]; then
             echo "version=${{ steps.latest_custom.outputs.version }}" >> "$GITHUB_OUTPUT"
           else
