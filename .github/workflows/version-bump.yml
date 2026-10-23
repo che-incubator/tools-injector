@@ -74,7 +74,7 @@ jobs:
           - name: cursor-cli
             source: custom-install-script
             script_url: "https://cursor.com/install"
-            version_grep: '(?<=downloads\.cursor\.com/lab/)[^/]+'
+            version_grep: '(?<=downloads\.cursor\.com/lab/)\d{4}\.\d{2}\.\d{2}-[0-9a-f]+(?=/)'
             arg_name: CURSOR_CLI_VERSION
           - name: python3
             source: alpine
