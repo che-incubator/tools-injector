@@ -28,6 +28,7 @@ on:
           - tmux
           - python3
           - gh
+          - codex
 
 permissions:
   contents: write
@@ -49,6 +50,11 @@ jobs:
             source: github
             repo: block/goose
             arg_name: GOOSE_VERSION
+          # tag keeps its rust-v prefix (e.g. rust-v0.164.0); the Dockerfile download URL needs it verbatim
+          - name: codex
+            source: github
+            repo: openai/codex
+            arg_name: CODEX_VERSION
           - name: claude-code
             source: github
             repo: anthropics/claude-code
