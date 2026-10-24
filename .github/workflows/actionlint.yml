@@ -1,0 +1,31 @@
+#
+# Copyright (c) 2026 Red Hat, Inc.
+# This program and the accompanying materials are made
+# available under the terms of the Eclipse Public License 2.0
+# which is available at https://www.eclipse.org/legal/epl-2.0/
+#
+# SPDX-License-Identifier: EPL-2.0
+#
+name: Actionlint
+
+on:
+  pull_request:
+    paths: ['.github/workflows/**', '.github/actionlint.yaml']
+
+permissions:
+  contents: read
+
+jobs:
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+
+      - name: "Lint GitHub Actions workflows"
+        # Bump the image tag and digest together.
+        run: |
+          docker run --rm -v "$PWD":/repo:ro -w /repo rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
