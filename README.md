@@ -8,6 +8,7 @@ Container images and `inject-tool` CLI for injecting AI CLI tools into Eclipse C
 |------|---------|-------|---------------|
 | opencode | init | `quay.io/che-incubator/tools-injector/opencode:next` | amd64, arm64 |
 | goose | init | `quay.io/che-incubator/tools-injector/goose:next` | amd64, arm64 |
+| codex | init | `quay.io/che-incubator/tools-injector/codex:next` | amd64, arm64 |
 | claude-code | init | `quay.io/che-incubator/tools-injector/claude-code:next` | amd64, arm64 |
 | gemini-cli | bundle | `quay.io/che-incubator/tools-injector/gemini-cli:next` | amd64, arm64 |
 | kilocode | bundle | `quay.io/che-incubator/tools-injector/kilocode:next` | amd64, arm64 |

@@ -287,6 +287,37 @@
         "env": [],
         "postStart": ""
       }
+    },
+    "codex": {
+      "description": "OpenAI's Codex CLI coding agent",
+      "pattern": "init",
+      "src": "/usr/local/bin/codex",
+      "binary": "codex",
+      "injector": {
+        "memoryLimit": "256Mi"
+      },
+      "patch": [
+        {
+          "op": "add",
+          "path": "/spec/template/components/-",
+          "value": {
+            "name": "codex-injector",
+            "container": {
+              "image": "quay.io/che-incubator/tools-injector/codex:next",
+              "command": ["/bin/cp"],
+              "args": ["/usr/local/bin/codex", "/injected-tools/codex"],
+              "memoryLimit": "256Mi",
+              "mountSources": false,
+              "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
+            }
+          }
+        }
+      ],
+      "editor": {
+        "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
+        "env": [],
+        "postStart": ""
+      }
     }
   }
 }

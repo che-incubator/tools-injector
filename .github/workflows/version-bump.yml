@@ -28,6 +28,7 @@ on:
           - tmux
           - python3
           - gh
+          - codex
 
 permissions:
   contents: write
@@ -49,6 +50,12 @@ jobs:
             source: github
             repo: block/goose
             arg_name: GOOSE_VERSION
+          # releases are tagged rust-v<semver>; the version files hold plain semver
+          - name: codex
+            source: github
+            repo: openai/codex
+            arg_name: CODEX_VERSION
+            tag_prefix: rust-v
           - name: claude-code
             source: github
             repo: anthropics/claude-code
@@ -110,6 +117,7 @@ jobs:
         id: latest_github
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG_PREFIX: ${{ matrix.tool.tag_prefix }}
         run: |
           TAG=$(gh api "repos/${{ matrix.tool.repo }}/releases/latest" --jq '.tag_name')
           if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
@@ -118,7 +126,12 @@ jobs:
           fi
           echo "Raw tag: ${TAG}"
 
-          if [ "${{ matrix.tool.strip_v }}" = "true" ]; then
+          if [ -n "$TAG_PREFIX" ]; then
+            case "$TAG" in
+              "$TAG_PREFIX"*) LATEST="${TAG#"$TAG_PREFIX"}" ;;
+              *) echo "::error::Latest release tag '${TAG}' of ${{ matrix.tool.repo }} does not start with '${TAG_PREFIX}'"; exit 1 ;;
+            esac
+          elif [ "${{ matrix.tool.strip_v }}" = "true" ]; then
             LATEST="${TAG#v}"
           else
             LATEST="${TAG}"
@@ -302,6 +315,7 @@ jobs:
           TOOL: ${{ matrix.tool.name }}
           SOURCE: ${{ matrix.tool.source }}
           STRIP_V: ${{ matrix.tool.strip_v }}
+          TAG_PREFIX: ${{ matrix.tool.tag_prefix }}
           REPO: ${{ matrix.tool.repo }}
           PACKAGE: ${{ matrix.tool.package }}
         run: |
@@ -313,6 +327,8 @@ jobs:
             TAG="${LATEST}"
             if [ "$STRIP_V" = "true" ]; then
               TAG="v${LATEST}"
+            elif [ -n "$TAG_PREFIX" ]; then
+              TAG="${TAG_PREFIX}${LATEST}"
             fi
             RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
           elif [ "$SOURCE" = "npm" ]; then

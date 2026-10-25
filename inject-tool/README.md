@@ -39,6 +39,7 @@ inject-tool remove opencode --hot
 |------|---------|-------------|
 | opencode | init | AI coding assistant |
 | goose | init | AI developer agent |
+| codex | init | OpenAI's Codex CLI |
 | claude-code | init | Anthropic's CLI for Claude |
 | tmux | init | Terminal multiplexer |
 | python3 | init | Python3 runtime (fallback for inject-tool.py) |

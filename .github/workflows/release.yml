@@ -40,6 +40,8 @@ jobs:
             dockerfile: dockerfiles/python3
           - name: gh
             dockerfile: dockerfiles/gh
+          - name: codex
+            dockerfile: dockerfiles/codex
     env:
       IMAGE: quay.io/che-incubator/tools-injector/${{ matrix.tool.name }}
       TAG: next
