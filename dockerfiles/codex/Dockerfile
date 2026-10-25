@@ -1,4 +1,4 @@
-ARG CODEX_VERSION=rust-v0.164.0
+ARG CODEX_VERSION=0.164.0
 
 # Stage 1: Download and extract codex
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
@@ -10,6 +10,7 @@ ARG TARGETARCH
 
 RUN apk add --no-cache curl tar gzip
 
+# Upstream tags releases as rust-v<semver>, so the download URL needs the prefix.
 RUN set -e && \
     case "${TARGETARCH}" in \
       amd64) ARCH="x86_64" ;; \
@@ -17,7 +18,7 @@ RUN set -e && \
       *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac && \
     curl -fsSL -o /tmp/codex.tar.gz \
-      "https://github.com/openai/codex/releases/download/${CODEX_VERSION}/codex-${ARCH}-unknown-linux-musl.tar.gz" && \
+      "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-${ARCH}-unknown-linux-musl.tar.gz" && \
     tar -xzf /tmp/codex.tar.gz -C /tmp && \
     mv "/tmp/codex-${ARCH}-unknown-linux-musl" /usr/local/bin/codex && \
     chmod +x /usr/local/bin/codex
