@@ -14,7 +14,7 @@ components:
       image: quay.io/che-incubator/tools-injector/codex:next
       command: ["/bin/cp"]
       args: ["/usr/local/bin/codex", "/injected-tools/codex"]
-      memoryLimit: 128Mi
+      memoryLimit: 256Mi
       mountSources: false
       volumeMounts:
         - name: injected-tools
