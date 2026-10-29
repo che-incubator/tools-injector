@@ -259,11 +259,11 @@
     },
     "python3": {
       "description": "Python3 interpreter",
-      "pattern": "init",
-      "src": "/usr/local/bin/python3",
+      "pattern": "bundle",
+      "src": "/opt/python3",
       "binary": "python3",
       "injector": {
-        "memoryLimit": "128Mi"
+        "memoryLimit": "256Mi"
       },
       "patch": [
         {
@@ -273,9 +273,9 @@
             "name": "python3-injector",
             "container": {
               "image": "quay.io/che-incubator/tools-injector/python3:next",
-              "command": ["/bin/cp"],
-              "args": ["/usr/local/bin/python3", "/injected-tools/python3"],
-              "memoryLimit": "128Mi",
+              "command": ["/bin/sh"],
+              "args": ["-c", "cp -a /opt/python3/. /injected-tools/python3/"],
+              "memoryLimit": "256Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -285,7 +285,8 @@
       "editor": {
         "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
         "env": [],
-        "postStart": ""
+        "postStart": "",
+        "memoryBump": "0Mi"
       }
     },
     "codex": {

@@ -26,9 +26,9 @@ Override registry/tag: `IMAGE_REGISTRY=quay.io/myorg TAG=dev make docker-build-l
 
 ### Two Injection Patterns
 
-**Init pattern** (claude-code, opencode, goose, tmux, python3): Single binary → Alpine builder stage → UBI10 minimal runtime. Binary copied to shared `/injected-tools` volume via preStart init container.
+**Init pattern** (claude-code, opencode, goose, tmux): Single binary → Alpine builder stage → UBI10 minimal runtime. Binary copied to shared `/injected-tools` volume via preStart init container.
 
-**Bundle pattern** (kilocode, gemini-cli): Node.js runtime + tool → `node:22-slim` builder → UBI10 minimal runtime. Entire bundle at `/opt/<tool>/`, copied to `/injected-tools/<tool>/` via init container. Editor container gets +512Mi memory bump.
+**Bundle pattern** (kilocode, gemini-cli, python3): Node.js runtime + tool → `node:22-slim` builder → UBI10 minimal runtime (python3: python-build-standalone glibc bundle). Entire bundle at `/opt/<tool>/`, copied to `/injected-tools/<tool>/` via init container. Editor container gets +512Mi memory bump by default, overridable per tool with `editor.memoryBump` (python3 sets 0Mi).
 
 Alpine is used for builder stages because UBI10 requires x86-64-v3 which QEMU can't emulate during cross-arch builds.
 
@@ -37,7 +37,7 @@ Alpine is used for builder stages because UBI10 requires x86-64-v3 which QEMU ca
 The tool registry is `inject-tool/registry.json`:
 - `registry`, `tag` — default image registry and tag (overridable via `INJECT_TOOL_REGISTRY`/`INJECT_TOOL_TAG` env vars)
 - `infrastructure.patch` — RFC 6902 ops for the shared `injected-tools` volume
-- `tools.<name>` — per-tool: `description`, `pattern`, `src`, `binary`, `patch` (append-only init container ops), `editor` (volumeMounts, env, postStart)
+- `tools.<name>` — per-tool: `description`, `pattern`, `src`, `binary`, `patch` (append-only init container ops), `editor` (volumeMounts, env, postStart, optional `memoryBump`)
 
 `inject-tool.py` loads `registry.json` at startup from the same directory (override path with `INJECT_TOOL_REGISTRY_FILE` env var for testing).
 
@@ -45,7 +45,7 @@ The tool registry is `inject-tool/registry.json`:
 
 **Multi-tool**: `inject-tool opencode goose tmux` builds patches for each tool, merges into one API call, one restart. `--hot` stays single-tool only.
 
-**Hot-inject mode** (`inject-tool <tool> --hot`): uses `oc image extract` to pull binary directly without restart. Init-pattern tools only. Not persistent across restarts.
+**Hot-inject mode** (`inject-tool <tool> --hot`): uses `oc image extract` to pull binary directly without restart. Init-pattern tools only; python3 is not hot-injectable. Not persistent across restarts.
 
 ### Deployment
 
