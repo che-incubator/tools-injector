@@ -15,7 +15,7 @@ components:
     container:
       image: quay.io/che-incubator/tools-injector/python3:next
       command: ["/bin/sh"]
-      args: ["-c", "cp -a /opt/python3/. /injected-tools/python3/"]
+      args: ["-c", "rm -rf /injected-tools/python3 && cp -a /opt/python3/. /injected-tools/python3/"]
       memoryLimit: 256Mi
       mountSources: false
       volumeMounts:
