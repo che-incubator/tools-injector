@@ -285,7 +285,7 @@
       "editor": {
         "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
         "env": [],
-        "postStart": "",
+        "postStart": "mkdir -p /injected-tools/bin && ln -sf /injected-tools/python3/bin/python3.13 /injected-tools/bin/python3.13 && ln -sf /injected-tools/python3/bin/pip /injected-tools/bin/pip && ln -sf /injected-tools/python3/bin/pip3 /injected-tools/bin/pip3",
         "memoryBump": "0Mi"
       }
     },
