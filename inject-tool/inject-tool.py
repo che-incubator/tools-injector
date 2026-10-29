@@ -222,6 +222,17 @@ def parse_memory(mem_str):
     return 0
 
 
+def editor_memory_bump(tool):
+    """Editor memory bump in Mi: editor.memoryBump if set, else 512 for bundle tools, else 0."""
+    reg_tool = REGISTRY_DATA["tools"][tool]
+    override = reg_tool.get("editor", {}).get("memoryBump")
+    if override is not None:
+        return parse_memory(override)
+    if reg_tool["pattern"] == "bundle":
+        return 512
+    return 0
+
+
 # ============================================================================
 # CLI parsing
 # ============================================================================
@@ -354,9 +365,11 @@ def build_inject_ops(tool, ws, skip_infra=False):
         current_mem = parse_memory(
             get_components(ws)[editor_idx].get("container", {}).get("memoryLimit", ""))
         target_mem = current_mem
-        # Bundle tools add +512Mi because the bundle runs inside the editor container
-        if pattern == "bundle":
-            target_mem = (current_mem or 1024) + 512
+        # Bundle tools add +512Mi because the bundle runs inside the editor
+        # container, unless editor.memoryBump overrides the bump
+        bump = editor_memory_bump(tool)
+        if bump > 0:
+            target_mem = (current_mem or 1024) + bump
         # If editor.memoryLimit is set, ensure at least that much memory
         min_mem = parse_memory(reg_tool["editor"].get("memoryLimit", ""))
         if min_mem and min_mem > target_mem:
@@ -474,9 +487,9 @@ def cmd_inject(tools, hot):
     for i, tool in enumerate(to_inject):
         all_ops.extend(build_inject_ops(tool, ws, skip_infra=(i > 0)))
 
-    # Fix memory bump for multiple bundle tools
-    bundle_count = sum(1 for t in to_inject if REGISTRY_DATA["tools"][t]["pattern"] == "bundle")
-    if bundle_count > 1:
+    # Fix memory bump for multiple tools with an editor memory bump
+    bump_tools = [t for t in to_inject if editor_memory_bump(t) > 0]
+    if len(bump_tools) > 1:
         editor = find_editor(ws)
         if editor:
             editor_idx = editor[0]
@@ -484,7 +497,7 @@ def cmd_inject(tools, hot):
             all_ops = [op for op in all_ops if not op.get("path", "").endswith("/memoryLimit")]
             current_mem = parse_memory(
                 get_components(ws)[editor_idx].get("container", {}).get("memoryLimit", ""))
-            total_bump = bundle_count * 512
+            total_bump = sum(editor_memory_bump(t) for t in bump_tools)
             if current_mem == 0:
                 total_mem = 1024 + total_bump
                 all_ops.append({"op": "add",

@@ -13,10 +13,10 @@ Container images and `inject-tool` CLI for injecting AI CLI tools into Eclipse C
 | gemini-cli | bundle | `quay.io/che-incubator/tools-injector/gemini-cli:next` | amd64, arm64 |
 | kilocode | bundle | `quay.io/che-incubator/tools-injector/kilocode:next` | amd64, arm64 |
 | tmux | init | `quay.io/che-incubator/tools-injector/tmux:next` | amd64, arm64 |
-| python3 | init | `quay.io/che-incubator/tools-injector/python3:next` | amd64, arm64 |
+| python3 | bundle | `quay.io/che-incubator/tools-injector/python3:next` | amd64, arm64 |
 
 **Init pattern**: Single binary copied to a shared volume via preStart init container.
-**Bundle pattern**: Node.js tool + runtime bundled at `/opt/<tool>/`, copied via init container.
+**Bundle pattern**: Tool + runtime bundled at `/opt/<tool>/`, copied via init container.
 
 ## Prerequisites
 
@@ -57,7 +57,7 @@ Features:
 - Auto PATH setup via `$HOME/.bashrc`
 - Auto env vars per tool (TOOL_ENV registry)
 - Auto config pre-seeding (TOOL_SETUP registry)
-- Auto memory bump +512Mi for bundle tools
+- Auto memory bump +512Mi for bundle tools (overridable per tool via `editor.memoryBump`; python3 sets 0Mi)
 
 See [inject-tool/README.md](inject-tool/README.md) for details.
 

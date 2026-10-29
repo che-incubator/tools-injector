@@ -85,11 +85,12 @@ jobs:
             script_url: "https://cursor.com/install"
             version_grep: '(?<=downloads\.cursor\.com/lab/)\d{4}\.\d{2}\.\d{2}-[0-9a-f]+(?=/)'
             arg_name: CURSOR_CLI_VERSION
+          # PBS releases are tagged by date; the Dockerfile pins both the Python version and the PBS release
           - name: python3
-            source: custom-install-script
-            script_url: "https://hub.docker.com/v2/repositories/library/python/tags?name=3.13.&page_size=100"
-            version_grep: '3\.13\.\d+(?=-alpine3\.23")'
+            source: python-build-standalone
+            repo: astral-sh/python-build-standalone
             arg_name: PYTHON3_VERSION
+            release_arg_name: PYTHON3_PBS_RELEASE
 
     steps:
       - name: "Checkout source code"
@@ -173,6 +174,50 @@ jobs:
           echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
           echo "Latest ${{ matrix.tool.name }} version: ${LATEST}"
 
+      - name: "Fetch latest version (python-build-standalone)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'python-build-standalone'
+        id: latest_pbs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ matrix.tool.repo }}
+          CURRENT: ${{ steps.current.outputs.version }}
+          TOOL: ${{ matrix.tool.name }}
+        run: |
+          TAG=$(gh api "repos/${REPO}/releases/latest" --jq .tag_name)
+          if [[ ! "$TAG" =~ ^[0-9]{8}$ ]]; then
+            echo "::error::Latest release tag of ${REPO} is not an 8-digit date: '${TAG}'"
+            exit 1
+          fi
+
+          ASSETS=$(gh api "repos/${REPO}/releases/latest" --jq '.assets[].name')
+          # highest Python 3.13 patch shipped by this PBS release
+          PY=$(echo "$ASSETS" | grep -oP '^cpython-\K3\.13\.[0-9]+(?=\+)' | sort -V | tail -1)
+          if [ -z "$PY" ]; then
+            echo "::error::No 3.13 asset in latest ${REPO} release"
+            exit 1
+          fi
+
+          # the image is built for linux/amd64 and linux/arm64, so both arches must be present
+          for ARCH in x86_64 aarch64; do
+            ASSET="cpython-${PY}+${TAG}-${ARCH}-unknown-linux-gnu-install_only_stripped.tar.gz"
+            if ! echo "$ASSETS" | grep -qxF "$ASSET"; then
+              echo "::error::Missing asset ${ASSET} in latest ${REPO} release"
+              exit 1
+            fi
+          done
+
+          # never move backwards: if the newest 3.13 patch is below the pinned one, keep the current version
+          if [ "$PY" != "$CURRENT" ] && [ "$PY" = "$(printf '%s\n%s\n' "$PY" "$CURRENT" | sort -V | head -1)" ]; then
+            echo "::warning::Latest ${REPO} 3.13 patch ${PY} is lower than current ${CURRENT}; keeping ${CURRENT}"
+            PY="$CURRENT"
+          fi
+
+          echo "version=${PY}" >> "$GITHUB_OUTPUT"
+          echo "release=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${TOOL} version: ${PY} (PBS release ${TAG})"
+
       - name: "Resolve latest version"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
         id: latest
@@ -180,8 +225,10 @@ jobs:
           FROM_GITHUB: ${{ steps.latest_github.outputs.version }}
           FROM_NPM: ${{ steps.latest_npm.outputs.version }}
           FROM_CUSTOM: ${{ steps.latest_custom.outputs.version }}
+          FROM_PBS: ${{ steps.latest_pbs.outputs.version }}
+          FROM_PBS_RELEASE: ${{ steps.latest_pbs.outputs.release }}
         run: |
-          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_CUSTOM}}}"
+          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_CUSTOM:-${FROM_PBS}}}}"
           if [ -z "$VERSION" ]; then
             echo "::error::No version found for ${{ matrix.tool.name }}"
             exit 1
@@ -194,12 +241,23 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
+          if [ -n "$FROM_PBS_RELEASE" ]; then
+            if [[ ! "$FROM_PBS_RELEASE" =~ ^[0-9]{8}$ ]]; then
+              echo "::error::Unexpected python-build-standalone release tag for ${{ matrix.tool.name }}: '${FROM_PBS_RELEASE}'"
+              exit 1
+            fi
+            echo "release=${FROM_PBS_RELEASE}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: "Compare versions"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
         id: compare
         run: |
           CURRENT="${{ steps.current.outputs.version }}"
           LATEST="${{ steps.latest.outputs.version }}"
+          # Compares the Python version only: a PBS rebuild with the same 3.13 patch (e.g. refreshed
+          # bundled OpenSSL/SQLite) is deliberately not picked up. Upgrade path: also compare the
+          # PYTHON3_PBS_RELEASE pin when this needs to cover rebuilds.
           if [ "$CURRENT" = "$LATEST" ]; then
             echo "needs_bump=false" >> "$GITHUB_OUTPUT"
             echo "${{ matrix.tool.name }} is up to date (${CURRENT})"
@@ -252,6 +310,8 @@ jobs:
           LATEST: ${{ steps.latest.outputs.version }}
           TOOL: ${{ matrix.tool.name }}
           ARG_NAME: ${{ matrix.tool.arg_name }}
+          RELEASE_ARG_NAME: ${{ matrix.tool.release_arg_name }}
+          LATEST_RELEASE: ${{ steps.latest.outputs.release }}
         run: |
           BRANCH="bump/${TOOL}-${LATEST}"
           git config user.name "github-actions[bot]"
@@ -260,6 +320,9 @@ jobs:
 
           echo -n "${LATEST}" > "dockerfiles/${TOOL}/VERSION"
           sed -i "s/^ARG ${ARG_NAME}=.*/ARG ${ARG_NAME}=${LATEST}/" "dockerfiles/${TOOL}/Dockerfile"
+          if [ -n "$RELEASE_ARG_NAME" ]; then
+            sed -i "s/^ARG ${RELEASE_ARG_NAME}=.*/ARG ${RELEASE_ARG_NAME}=${LATEST_RELEASE}/" "dockerfiles/${TOOL}/Dockerfile"
+          fi
 
           git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile"
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
@@ -312,6 +375,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           CURRENT: ${{ steps.current.outputs.version }}
           LATEST: ${{ steps.latest.outputs.version }}
+          LATEST_RELEASE: ${{ steps.latest.outputs.release }}
           TOOL: ${{ matrix.tool.name }}
           SOURCE: ${{ matrix.tool.source }}
           STRIP_V: ${{ matrix.tool.strip_v }}
@@ -333,6 +397,8 @@ jobs:
             RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG}"
           elif [ "$SOURCE" = "npm" ]; then
             RELEASE_URL="https://www.npmjs.com/package/${PACKAGE}/v/${LATEST}"
+          elif [ "$SOURCE" = "python-build-standalone" ]; then
+            RELEASE_URL="https://github.com/${REPO}/releases/tag/${LATEST_RELEASE}"
           fi
 
           BODY="## Version Bump"
