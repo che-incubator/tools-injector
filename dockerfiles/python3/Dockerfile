@@ -38,11 +38,24 @@ RUN set -e && \
     mv /tmp/pbs/python /opt/python3 && \
     rm -rf /tmp/pbs
 
+# TEMPORARY (python3-init-compat): stage a /usr/local/bin/python3 symlink for
+# the runtime COPY below. Remove with it (see the runtime-stage comment).
+RUN mkdir -p /compat/usr/local/bin && \
+    ln -s /opt/python3/bin/python3 /compat/usr/local/bin/python3
+
 # Stage 2: Minimal runtime image.
 # Used as init container — copies the bundle to the shared volume, then exits.
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=builder /opt/python3 /opt/python3
+
+# TEMPORARY (python3-init-compat): workspaces injected before the bundle switch
+# in #183 still run `cp /usr/local/bin/python3 /injected-tools/python3` in their
+# old init container; this symlink keeps that cp working (cp follows symlinks).
+# REMOVAL TRIGGER: Remove this and the builder step once no DevWorkspace still
+# carries the pre-#183 python3 init container (args /usr/local/bin/python3);
+# find all pieces with: grep -rn python3-init-compat
+COPY --from=builder /compat/usr/local/bin/python3 /usr/local/bin/python3
 
 ARG PYTHON3_VERSION
 ENV TOOL_NAME=python3 TOOL_VERSION=${PYTHON3_VERSION}
