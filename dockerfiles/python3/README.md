@@ -32,7 +32,7 @@ events:
     - install-python3
 ```
 
-The editor container must mount the `injected-tools` volume to access the tool. `inject-tool` exposes `/injected-tools/bin/python3` as a symlink to `/injected-tools/python3/bin/python3`.
+The editor container must mount the `injected-tools` volume to access the tool. `inject-tool` links `python3`, `python3.13`, `pip` and `pip3` from `/injected-tools/bin` into `/injected-tools/python3/bin/`.
 
 Notes:
 
