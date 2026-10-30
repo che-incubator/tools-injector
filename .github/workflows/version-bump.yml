@@ -29,6 +29,7 @@ on:
           - python3
           - gh
           - codex
+          - uv
 
 permissions:
   contents: write
@@ -72,6 +73,11 @@ jobs:
             repo: cli/cli
             arg_name: GH_VERSION
             strip_v: true
+          # releases are tagged with plain semver, no v prefix
+          - name: uv
+            source: github
+            repo: astral-sh/uv
+            arg_name: UV_VERSION
           - name: kilocode
             source: npm
             package: "@kilocode/cli"
