@@ -30,6 +30,7 @@ on:
           - gh
           - codex
           - uv
+          - pi
 
 permissions:
   contents: write
@@ -86,6 +87,10 @@ jobs:
             source: npm
             package: "@google/gemini-cli"
             arg_name: GEMINI_CLI_VERSION
+          - name: pi
+            source: npm
+            package: "@earendil-works/pi-coding-agent"
+            arg_name: PI_VERSION
           - name: cursor-cli
             source: custom-install-script
             script_url: "https://cursor.com/install"
