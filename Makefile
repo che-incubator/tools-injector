@@ -20,7 +20,7 @@ endif
 IMAGE_REGISTRY ?= quay.io/che-incubator
 
 # Tool definitions
-TOOLS := opencode goose claude-code kilocode gemini-cli cursor-cli tmux python3 gh codex
+TOOLS := opencode goose claude-code kilocode gemini-cli cursor-cli tmux python3 gh codex uv
 
 # Default tag
 TAG ?= next

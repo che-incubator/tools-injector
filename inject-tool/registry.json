@@ -319,6 +319,41 @@
         "env": [],
         "postStart": ""
       }
+    },
+    "uv": {
+      "description": "Python package and project manager",
+      "pattern": "init",
+      "src": "/usr/local/bin/uv",
+      "binary": "uv",
+      "injector": {
+        "memoryLimit": "128Mi"
+      },
+      "patch": [
+        {
+          "op": "add",
+          "path": "/spec/template/components/-",
+          "value": {
+            "name": "uv-injector",
+            "container": {
+              "image": "quay.io/che-incubator/tools-injector/uv:next",
+              "command": ["/bin/cp"],
+              "args": ["/usr/local/bin/uv", "/usr/local/bin/uvx", "/injected-tools/"],
+              "memoryLimit": "128Mi",
+              "mountSources": false,
+              "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
+            }
+          }
+        }
+      ],
+      "editor": {
+        "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
+        "env": [
+          { "name": "UV_PYTHON_INSTALL_DIR", "value": "/injected-tools/uv-state/python" },
+          { "name": "UV_TOOL_DIR", "value": "/injected-tools/uv-state/tools" },
+          { "name": "UV_TOOL_BIN_DIR", "value": "/injected-tools/bin" }
+        ],
+        "postStart": "mkdir -p /injected-tools/bin && ln -sf /injected-tools/uvx /injected-tools/bin/uvx"
+      }
     }
   }
 }
