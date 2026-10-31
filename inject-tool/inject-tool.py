@@ -5,10 +5,13 @@ import argparse
 import copy
 import json
 import os
+import re
+import shutil
 import ssl
 import subprocess
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 # ============================================================================
 # Tool registry (loaded from registry.json at startup)
@@ -273,13 +276,98 @@ def parse_args():
 def cmd_list():
     validate_env()
     ws = fetch_workspace()
-    print(f"{'Tool':<15s} {'Pattern':<10s} {'Status'}")
-    print(f"{'----':<15s} {'-------':<10s} {'------'}")
-    for tool in sorted(REGISTRY_DATA["tools"]):
-        pattern = REGISTRY_DATA["tools"][tool]["pattern"]
-        comp_name = f"{tool}-injector"
-        status = "injected" if find_component_index(ws, comp_name) is not None else "not injected"
-        print(f"{tool:<15s} {pattern:<10s} {status}")
+    tools = sorted(REGISTRY_DATA["tools"])
+
+    injected = {
+        tool: find_component_index(ws, f"{tool}-injector") is not None
+        for tool in tools
+    }
+    # Probe installed versions in parallel so the total wait is the slowest
+    # tool, not the sum; a hanging tool is capped by the per-command timeout.
+    with ThreadPoolExecutor(max_workers=len(tools)) as pool:
+        probes = dict(zip(tools, pool.map(probe_installed_version, tools)))
+
+    print(f"{'Tool':<15s} {'Pattern':<10s} {'Status':<13s} {'Installed':<22s} {'Available'}")
+    print(f"{'----':<15s} {'-------':<10s} {'------':<13s} {'---------':<22s} {'---------'}")
+    any_differs = False
+    for tool in tools:
+        reg_tool = REGISTRY_DATA["tools"][tool]
+        available = reg_tool.get("version", "?")
+        binary_found, installed = probes[tool]
+        if not binary_found:
+            # injected but the init container has not run yet (no restart since)
+            installed = "pending restart" if injected[tool] else "-"
+        elif installed != "?" and versions_differ(installed, available):
+            installed += " *"
+            any_differs = True
+        status = "injected" if injected[tool] else "not injected"
+        print(f"{tool:<15s} {reg_tool['pattern']:<10s} {status:<13s} {installed:<22s} {available}")
+    if any_differs:
+        print("\n* installed version differs from the available one")
+
+
+# ============================================================================
+# Version probing (used by `list`)
+# ============================================================================
+VERSION_CMD_TIMEOUT = 10  # seconds per version-command invocation
+DEFAULT_VERSION_REGEX = r"[v]?\d[\w.+-]*"
+
+
+def find_tool_binary(name, tool):
+    """Locate a tool binary: prefer the injected copies, then PATH.
+
+    Beyond PATH this covers binaries injected by an init container (flat at
+    /injected-tools or in the tool's bundle dir) and hot-injected ones (flat,
+    no symlink), which the current shell's PATH may not include.
+    """
+    candidates = [
+        f"/injected-tools/bin/{name}",
+        f"/injected-tools/{name}",
+        f"/injected-tools/{tool}/bin/{name}",
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    return shutil.which(name)
+
+
+def probe_installed_version(tool):
+    """Run the tool's version command; returns (binary_found, version).
+
+    version is "?" when the command hangs, fails, or its output contains no
+    version-shaped token.
+    """
+    reg_tool = REGISTRY_DATA["tools"][tool]
+    cmd = reg_tool.get("versionCommand", [reg_tool["binary"], "--version"])
+    exe = find_tool_binary(cmd[0], tool)
+    if exe is None:
+        return False, None
+    try:
+        proc = subprocess.run([exe] + cmd[1:], capture_output=True, text=True,
+                              timeout=VERSION_CMD_TIMEOUT)
+    except (subprocess.TimeoutExpired, OSError):
+        return True, "?"
+    regex = reg_tool.get("versionRegex", DEFAULT_VERSION_REGEX)
+    # stdout first: a failed run's stderr (stack traces, warnings) must not
+    # shadow a clean version or contribute hash-looking tokens
+    streams = [proc.stdout]
+    if proc.returncode == 0:
+        streams.append(proc.stderr)
+    for stream in streams:
+        match = re.search(regex, stream or "")
+        if match:
+            return True, match.group(0)
+    return True, "?"
+
+
+def strip_v(version):
+    return version[1:] if version.startswith("v") else version
+
+
+def versions_differ(installed, available):
+    """Plain-string compare, ignoring a leading 'v': goose is shipped as
+    v1.56.0 but prints '1.56.0'."""
+    return strip_v(installed) != strip_v(available)
 
 
 def build_inject_ops(tool, ws, skip_infra=False):

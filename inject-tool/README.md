@@ -22,7 +22,7 @@ inject-tool claude-code goose tmux
 # Inject without restart (one tool only, requires oc CLI)
 inject-tool opencode --hot
 
-# List available tools and injection status
+# List available tools, injection status, and installed/available versions
 inject-tool list
 
 # Remove one or more tools (single restart)
@@ -66,3 +66,5 @@ The tool is delivered as two files via ConfigMap automount:
 **Bundle tools** (kilocode, gemini-cli, cursor-cli, python3): patches the DevWorkspace CR to add an init container that copies the full runtime + tool directory to `/injected-tools/<tool>/`. The editor container gets a +512Mi memory bump by default, overridable per tool via `editor.memoryBump` (python3 sets 0Mi).
 
 **Hot inject** (`--hot`): extracts the binary from the container image using `oc image extract`. Init-pattern tools only. Not persistent across restarts.
+
+**`list` version probing**: the available version comes from the `version` field in `registry.json` (kept in sync with `dockerfiles/<tool>/VERSION` and the Dockerfile `ARG` by the version-bump workflow, and checked in CI). For every tool whose binary is present, `list` runs its version command in parallel with a per-command timeout — `<binary> --version` by default, overridable per tool via `versionCommand`/`versionRegex` in `registry.json`. A hanging or failing tool shows `?`; a tool injected but not yet restarted shows `pending restart`.

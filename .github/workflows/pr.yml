@@ -73,6 +73,42 @@ jobs:
           fi
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
 
+  check-registry-versions:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: "Checkout source code"
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      -
+        name: "Check version pins are in sync (VERSION file, Dockerfile ARG, registry.json)"
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib, re, sys
+
+          registry = json.loads(pathlib.Path("inject-tool/registry.json").read_text())
+          failures = []
+          for tool, entry in sorted(registry["tools"].items()):
+              expected = pathlib.Path(f"dockerfiles/{tool}/VERSION").read_text().strip()
+              arg_name = tool.upper().replace("-", "_") + "_VERSION"
+              match = re.search(rf"^ARG {arg_name}=(\S+)$",
+                                pathlib.Path(f"dockerfiles/{tool}/Dockerfile").read_text(), re.M)
+              sources = {
+                  "Dockerfile ARG": match.group(1) if match else None,
+                  "registry.json": entry.get("version"),
+              }
+              for where, value in sources.items():
+                  if value != expected:
+                      failures.append(f"{tool}: {where} is {value!r}, VERSION file says {expected!r}")
+
+          if failures:
+              for failure in failures:
+                  print(f"::error::{failure}")
+              sys.exit(1)
+          print(f"All {len(registry['tools'])} tools have matching version pins")
+          EOF
+
   build-tools:
     needs: detect-changes
     if: needs.detect-changes.outputs.has_tools == 'true'
