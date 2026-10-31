@@ -46,6 +46,9 @@ inject-tool remove opencode --hot
 | kilocode | bundle | AI coding agent |
 | gemini-cli | bundle | Google's Gemini CLI |
 | cursor-cli | bundle | Cursor Agent CLI |
+| gh | init | GitHub CLI |
+| uv | init | Python package and project manager |
+| pi | bundle | Pi coding agent by earendil-works |
 
 ## Configuration
 

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Container images + `inject-tool` CLI for dynamically injecting AI CLI tools into Eclipse Che DevWorkspaces. Two components:
 
-1. **Dockerfiles** (`dockerfiles/<tool>/`) — minimal multi-arch images for 7 tools
+1. **Dockerfiles** (`dockerfiles/<tool>/`) — minimal multi-arch images, one directory per registered tool
 2. **inject-tool** (`inject-tool/inject-tool.py`) — Python3 CLI that patches DevWorkspace CRs via Kubernetes API using RFC 6902 JSON Patch. Delivered via ConfigMap as a shell shim + `.py` file.
 
 ## Build Commands
@@ -26,9 +26,11 @@ Override registry/tag: `IMAGE_REGISTRY=quay.io/myorg TAG=dev make docker-build-l
 
 ### Two Injection Patterns
 
-**Init pattern** (claude-code, opencode, goose, tmux): Single binary → Alpine builder stage → UBI10 minimal runtime. Binary copied to shared `/injected-tools` volume via preStart init container.
+**Init pattern**: Single binary → Alpine builder stage → UBI10 minimal runtime. Binary copied to shared `/injected-tools` volume via preStart init container.
 
-**Bundle pattern** (kilocode, gemini-cli, python3): Node.js runtime + tool → `node:22-slim` builder → UBI10 minimal runtime (python3: python-build-standalone glibc bundle). Entire bundle at `/opt/<tool>/`, copied to `/injected-tools/<tool>/` via init container. Editor container gets +512Mi memory bump by default, overridable per tool with `editor.memoryBump` (python3 sets 0Mi).
+**Bundle pattern**: Node.js runtime + tool → `node:22-slim` builder → UBI10 minimal runtime (python3: python-build-standalone glibc bundle). Entire bundle at `/opt/<tool>/`, copied to `/injected-tools/<tool>/` via init container. Editor container gets +512Mi memory bump by default, overridable per tool with `editor.memoryBump` (python3 sets 0Mi).
+
+Which tools use which pattern is recorded per tool in the `pattern` field of `inject-tool/registry.json`.
 
 Alpine is used for builder stages because UBI10 requires x86-64-v3 which QEMU can't emulate during cross-arch builds.
 
@@ -53,18 +55,27 @@ The tool registry is `inject-tool/registry.json`:
 
 ## CI/CD
 
-- `.github/workflows/pr.yml` — builds all 7 tools multi-arch on every PR, tags with `pr-<number>`
-- `.github/workflows/release.yml` — pushes `next` tag on merge to main
+- `.github/workflows/pr.yml` — builds changed tools multi-arch on every PR, tags with `pr-<number>`; the tool list and registry consistency checks derive from `inject-tool/registry.json`
+- `.github/workflows/release.yml` — rebuilds every registered tool from `registry.json` and pushes `next` on merge to main
+- `.github/workflows/version-bump.yml` — weekly (and manual) check for new upstream tool versions; opens one bump PR per outdated tool
 
-Both push to `quay.io/che-incubator/tools-injector/<tool>`.
+All images push to `quay.io/che-incubator/tools-injector/<tool>`.
 
 ## Adding a New Tool
 
-1. Create `dockerfiles/<tool>/Dockerfile` following init or bundle pattern
-2. Add tool name to `TOOLS` list in `Makefile`
-3. Add registry entry in `inject-tool/registry.json` (`tools.<name>` with `description`, `pattern`, `src`, `binary`, `patch`, `editor`)
-4. PR triggers CI multi-arch build; merge pushes `:next`
+A new tool is referenced in **six** places — missing any of them silently breaks CI, version bumps, or releases. The `check-tool-registration` CI job catches list omissions; the PR and release build matrices derive from `registry.json` automatically. The rest is on you.
+
+1. **`dockerfiles/<tool>/Dockerfile`** — image build, following the init or bundle pattern (see "Two Injection Patterns" above). For npm-based bundles, do not COPY the dereferenced `node_modules/.bin` symlink — wrap the real entrypoint in an `sh` script (see pi; gemini-cli is the counterexample).
+2. **`dockerfiles/<tool>/VERSION`** — plain version string, no trailing newline. Must match the Dockerfile `ARG` and the registry `version` exactly; the version-bump workflow rewrites all three together.
+3. **`Makefile`** — add the tool to `TOOLS` for local build targets.
+4. **`inject-tool/registry.json`** — `tools.<name>` entry: `description`, `pattern`, `src`, `binary`, `version` (same string as the VERSION file), `injector` (init-container `memoryLimit`), `patch` (append-only init-container ops — keep the patch container's `memoryLimit` in sync with `injector.memoryLimit`), `editor` (volumeMounts, env, postStart, optional `memoryBump`/`memoryLimit`). Add `versionCommand`/`versionRegex` when the tool's `--version` output needs different probing.
+5. **`.github/workflows/version-bump.yml`** — two places: the `workflow_dispatch` `inputs.tool` choice list, and the `check-versions` matrix entry (`name`, `source`, `repo`/`package`, `arg_name`, plus `strip_v`/`tag_prefix` as needed).
+6. **`inject-tool/README.md`** — add a row to the Available Tools table.
+
+Finally, create the Quay repository `quay.io/che-incubator/tools-injector/<tool>` and **make it public** — new Quay repos are private by default, and workspaces get 401s pulling them.
+
+A PR triggers the multi-arch CI build (`pr-<number>` tag); merge rebuilds `:next`. Verify before merging: inject the tool into a DevWorkspace and run it; `inject-tool list` should show the new tool with its version.
 
 ## No Automated Tests
 
-CI validates via successful Docker builds only. inject-tool logic is tested manually in DevWorkspaces.
+inject-tool logic is tested manually in DevWorkspaces. CI checks are limited to Docker builds and registry consistency (tool registration, version drift between the VERSION file, Dockerfile ARG, and registry).

@@ -18,7 +18,7 @@
       "binary": "opencode",
       "version": "v1.19.4",
       "injector": {
-        "memoryLimit": "128Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -30,7 +30,7 @@
               "image": "quay.io/che-incubator/tools-injector/opencode:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/opencode", "/injected-tools/opencode"],
-              "memoryLimit": "128Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -50,7 +50,7 @@
       "binary": "goose",
       "version": "v1.56.0",
       "injector": {
-        "memoryLimit": "128Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -62,7 +62,7 @@
               "image": "quay.io/che-incubator/tools-injector/goose:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/goose", "/injected-tools/goose"],
-              "memoryLimit": "128Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -82,7 +82,7 @@
       "binary": "claude",
       "version": "2.1.310",
       "injector": {
-        "memoryLimit": "128Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -94,7 +94,7 @@
               "image": "quay.io/che-incubator/tools-injector/claude-code:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/claude", "/injected-tools/claude"],
-              "memoryLimit": "128Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -115,7 +115,7 @@
       "binary": "kilo",
       "version": "7.8.18",
       "injector": {
-        "memoryLimit": "256Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -127,7 +127,7 @@
               "image": "quay.io/che-incubator/tools-injector/kilocode:next",
               "command": ["/bin/sh"],
               "args": ["-c", "cp -a /opt/kilocode/. /injected-tools/kilocode/"],
-              "memoryLimit": "256Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -147,7 +147,7 @@
       "binary": "gemini",
       "version": "0.65.0",
       "injector": {
-        "memoryLimit": "256Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -159,7 +159,7 @@
               "image": "quay.io/che-incubator/tools-injector/gemini-cli:next",
               "command": ["/bin/sh"],
               "args": ["-c", "cp -a /opt/gemini-cli/. /injected-tools/gemini-cli/"],
-              "memoryLimit": "256Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -179,7 +179,7 @@
       "binary": "agent",
       "version": "2026.10.22-27dcf5f",
       "injector": {
-        "memoryLimit": "512Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -191,7 +191,7 @@
               "image": "quay.io/che-incubator/tools-injector/cursor-cli:next",
               "command": ["/bin/sh"],
               "args": ["-c", "cp -a /opt/cursor-cli/. /injected-tools/cursor-cli/"],
-              "memoryLimit": "512Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -212,7 +212,7 @@
       "version": "3.7c",
       "versionCommand": ["tmux", "-V"],
       "injector": {
-        "memoryLimit": "128Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -224,7 +224,7 @@
               "image": "quay.io/che-incubator/tools-injector/tmux:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/tmux", "/injected-tools/tmux"],
-              "memoryLimit": "128Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -243,6 +243,9 @@
       "src": "/usr/local/bin/gh",
       "binary": "gh",
       "version": "2.103.2",
+      "injector": {
+        "memoryLimit": "64Mi"
+      },
       "patch": [
         {
           "op": "add",
@@ -253,7 +256,7 @@
               "image": "quay.io/che-incubator/tools-injector/gh:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/gh", "/injected-tools/gh"],
-              "memoryLimit": "128Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -273,7 +276,7 @@
       "binary": "python3",
       "version": "3.13.18",
       "injector": {
-        "memoryLimit": "256Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -285,7 +288,7 @@
               "image": "quay.io/che-incubator/tools-injector/python3:next",
               "command": ["/bin/sh"],
               "args": ["-c", "cp -a /opt/python3/. /injected-tools/python3/"],
-              "memoryLimit": "256Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -306,7 +309,7 @@
       "binary": "codex",
       "version": "0.164.0",
       "injector": {
-        "memoryLimit": "256Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -318,7 +321,7 @@
               "image": "quay.io/che-incubator/tools-injector/codex:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/codex", "/injected-tools/codex"],
-              "memoryLimit": "256Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -338,7 +341,7 @@
       "binary": "uv",
       "version": "0.13.6",
       "injector": {
-        "memoryLimit": "128Mi"
+        "memoryLimit": "64Mi"
       },
       "patch": [
         {
@@ -350,7 +353,7 @@
               "image": "quay.io/che-incubator/tools-injector/uv:next",
               "command": ["/bin/cp"],
               "args": ["/usr/local/bin/uv", "/usr/local/bin/uvx", "/injected-tools/"],
-              "memoryLimit": "128Mi",
+              "memoryLimit": "64Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
@@ -374,7 +377,7 @@
       "binary": "pi",
       "version": "1.4.0",
       "injector": {
-        "memoryLimit": "256Mi"
+        "memoryLimit": "128Mi"
       },
       "patch": [
         {
@@ -386,7 +389,7 @@
               "image": "quay.io/che-incubator/tools-injector/pi:next",
               "command": ["/bin/sh"],
               "args": ["-c", "cp -a /opt/pi/. /injected-tools/pi/"],
-              "memoryLimit": "256Mi",
+              "memoryLimit": "128Mi",
               "mountSources": false,
               "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
             }
