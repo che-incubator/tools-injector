@@ -16,6 +16,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/opencode",
       "binary": "opencode",
+      "version": "v1.19.4",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -47,6 +48,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/goose",
       "binary": "goose",
+      "version": "v1.56.0",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -78,6 +80,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/claude",
       "binary": "claude",
+      "version": "2.1.310",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -110,6 +113,7 @@
       "pattern": "bundle",
       "src": "/opt/kilocode",
       "binary": "kilo",
+      "version": "7.8.18",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -141,6 +145,7 @@
       "pattern": "bundle",
       "src": "/opt/gemini-cli",
       "binary": "gemini",
+      "version": "0.65.0",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -172,6 +177,7 @@
       "pattern": "bundle",
       "src": "/opt/cursor-cli",
       "binary": "agent",
+      "version": "2026.10.22-27dcf5f",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -203,6 +209,8 @@
       "pattern": "init",
       "src": "/usr/local/bin/tmux",
       "binary": "tmux",
+      "version": "3.7c",
+      "versionCommand": ["tmux", "-V"],
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -234,6 +242,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/gh",
       "binary": "gh",
+      "version": "2.103.2",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -265,6 +274,7 @@
       "pattern": "bundle",
       "src": "/opt/python3",
       "binary": "python3",
+      "version": "3.13.18",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -297,6 +307,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/codex",
       "binary": "codex",
+      "version": "0.164.0",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -328,6 +339,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/uv",
       "binary": "uv",
+      "version": "0.13.6",
       "injector": {
         "memoryLimit": "64Mi"
       },
@@ -363,6 +375,7 @@
       "pattern": "bundle",
       "src": "/opt/pi",
       "binary": "pi",
+      "version": "1.4.0",
       "injector": {
         "memoryLimit": "128Mi"
       },

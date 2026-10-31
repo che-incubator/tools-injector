@@ -335,7 +335,27 @@ jobs:
             sed -i "s/^ARG ${RELEASE_ARG_NAME}=.*/ARG ${RELEASE_ARG_NAME}=${LATEST_RELEASE}/" "dockerfiles/${TOOL}/Dockerfile"
           fi
 
-          git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile"
+          # keep the registry version in sync with VERSION and the Dockerfile ARG;
+          # targeted text edit because a full json.dump rewrite would reformat the file
+          python3 - "$TOOL" "$LATEST" <<'EOF'
+          import json, re, sys
+
+          tool, version = sys.argv[1], sys.argv[2]
+          path = "inject-tool/registry.json"
+          text = open(path).read()
+
+          pattern = re.compile(r'("' + re.escape(tool) + r'": \{.*?"version": ")[^"]*(")', re.S)
+          text, count = pattern.subn(lambda m: m.group(1) + version + m.group(2), text, count=1)
+          if count != 1:
+              sys.exit(f"::error::No version field found for {tool} in {path}")
+
+          data = json.loads(text)  # refuse to write anything that breaks parsing
+          if data["tools"][tool]["version"] != version:
+              sys.exit(f"::error::Version update for {tool} did not land correctly")
+          open(path, "w").write(text)
+          EOF
+
+          git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile" "inject-tool/registry.json"
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
           git push --force-with-lease origin "${BRANCH}"
 
