@@ -233,6 +233,12 @@ def editor_memory_bump(tool):
     return 0
 
 
+def editor_memory_floor(tool):
+    """Editor memory floor in Mi from editor.memoryLimit, 0 if unset."""
+    reg_tool = REGISTRY_DATA["tools"][tool]
+    return parse_memory(reg_tool.get("editor", {}).get("memoryLimit", ""))
+
+
 # ============================================================================
 # CLI parsing
 # ============================================================================
@@ -360,26 +366,6 @@ def build_inject_ops(tool, ws, skip_infra=False):
                              "path": f"/spec/template/components/{editor_idx}/container/env/-",
                              "value": env_var})
 
-    # 3d. Memory adjustment for editor container
-    if not skip_infra and editor_idx is not None:
-        current_mem = parse_memory(
-            get_components(ws)[editor_idx].get("container", {}).get("memoryLimit", ""))
-        target_mem = current_mem
-        # Bundle tools add +512Mi because the bundle runs inside the editor
-        # container, unless editor.memoryBump overrides the bump
-        bump = editor_memory_bump(tool)
-        if bump > 0:
-            target_mem = (current_mem or 1024) + bump
-        # If editor.memoryLimit is set, ensure at least that much memory
-        min_mem = parse_memory(reg_tool["editor"].get("memoryLimit", ""))
-        if min_mem and min_mem > target_mem:
-            target_mem = min_mem
-        if target_mem > current_mem:
-            op_type = "replace" if current_mem else "add"
-            ops.append({"op": op_type,
-                         "path": f"/spec/template/components/{editor_idx}/container/memoryLimit",
-                         "value": f"{target_mem}Mi"})
-
     # 4. Add apply command
     commands = ws.get("spec", {}).get("template", {}).get("commands")
     if skip_infra or commands is not None:
@@ -487,27 +473,21 @@ def cmd_inject(tools, hot):
     for i, tool in enumerate(to_inject):
         all_ops.extend(build_inject_ops(tool, ws, skip_infra=(i > 0)))
 
-    # Fix memory bump for multiple tools with an editor memory bump
-    bump_tools = [t for t in to_inject if editor_memory_bump(t) > 0]
-    if len(bump_tools) > 1:
-        editor = find_editor(ws)
-        if editor:
-            editor_idx = editor[0]
-            # Remove individual bump ops and add correct total
-            all_ops = [op for op in all_ops if not op.get("path", "").endswith("/memoryLimit")]
-            current_mem = parse_memory(
-                get_components(ws)[editor_idx].get("container", {}).get("memoryLimit", ""))
-            total_bump = sum(editor_memory_bump(t) for t in bump_tools)
-            if current_mem == 0:
-                total_mem = 1024 + total_bump
-                all_ops.append({"op": "add",
-                                "path": f"/spec/template/components/{editor_idx}/container/memoryLimit",
-                                "value": f"{total_mem}Mi"})
-            else:
-                total_mem = current_mem + total_bump
-                all_ops.append({"op": "replace",
-                                "path": f"/spec/template/components/{editor_idx}/container/memoryLimit",
-                                "value": f"{total_mem}Mi"})
+    # Editor memory: one op covering all newly injected tools — the sum of
+    # their bumps on top of the current limit, raised to the largest
+    # editor.memoryLimit floor among them
+    editor = find_editor(ws)
+    if editor:
+        editor_idx = editor[0]
+        current_mem = parse_memory(
+            get_components(ws)[editor_idx].get("container", {}).get("memoryLimit", ""))
+        target_mem = (current_mem or 1024) + sum(editor_memory_bump(t) for t in to_inject)
+        target_mem = max(target_mem, max((editor_memory_floor(t) for t in to_inject), default=0))
+        if target_mem > current_mem:
+            op_type = "replace" if current_mem else "add"
+            all_ops.append({"op": op_type,
+                            "path": f"/spec/template/components/{editor_idx}/container/memoryLimit",
+                            "value": f"{target_mem}Mi"})
 
     tool_names = ", ".join(to_inject)
     info(f"Injecting {tool_names}...")
