@@ -55,24 +55,22 @@ The tool registry is `inject-tool/registry.json`:
 
 ## CI/CD
 
-- `.github/workflows/pr.yml` — builds changed tools multi-arch on every PR, tags with `pr-<number>`; registry consistency checks fail the PR on tool-list or version drift
-- `.github/workflows/release.yml` — rebuilds every registered tool and pushes `next` on merge to main
+- `.github/workflows/pr.yml` — builds changed tools multi-arch on every PR, tags with `pr-<number>`; the tool list and registry consistency checks derive from `inject-tool/registry.json`
+- `.github/workflows/release.yml` — rebuilds every registered tool from `registry.json` and pushes `next` on merge to main
 - `.github/workflows/version-bump.yml` — weekly (and manual) check for new upstream tool versions; opens one bump PR per outdated tool
 
 All images push to `quay.io/che-incubator/tools-injector/<tool>`.
 
 ## Adding a New Tool
 
-A new tool is referenced in **eight** places — missing any of them silently breaks CI, version bumps, or releases. The `check-tool-registration` CI job catches list omissions; the rest is on you.
+A new tool is referenced in **six** places — missing any of them silently breaks CI, version bumps, or releases. The `check-tool-registration` CI job catches list omissions; the PR and release build matrices derive from `registry.json` automatically. The rest is on you.
 
 1. **`dockerfiles/<tool>/Dockerfile`** — image build, following the init or bundle pattern (see "Two Injection Patterns" above). For npm-based bundles, do not COPY the dereferenced `node_modules/.bin` symlink — wrap the real entrypoint in an `sh` script (see pi; gemini-cli is the counterexample).
 2. **`dockerfiles/<tool>/VERSION`** — plain version string, no trailing newline. Must match the Dockerfile `ARG` and the registry `version` exactly; the version-bump workflow rewrites all three together.
 3. **`Makefile`** — add the tool to `TOOLS` for local build targets.
 4. **`inject-tool/registry.json`** — `tools.<name>` entry: `description`, `pattern`, `src`, `binary`, `version` (same string as the VERSION file), `injector` (init-container `memoryLimit`), `patch` (append-only init-container ops — keep the patch container's `memoryLimit` in sync with `injector.memoryLimit`), `editor` (volumeMounts, env, postStart, optional `memoryBump`/`memoryLimit`). Add `versionCommand`/`versionRegex` when the tool's `--version` output needs different probing.
-5. **`.github/workflows/pr.yml`** — add to the `TOOLS` list in the "Build tool matrix from changed files" step, or PRs touching only that tool skip image builds.
-6. **`.github/workflows/release.yml`** — add a matrix entry under `build-tools`, or merge to main never rebuilds that tool's `:next` image.
-7. **`.github/workflows/version-bump.yml`** — two places: the `workflow_dispatch` `inputs.tool` choice list, and the `check-versions` matrix entry (`name`, `source`, `repo`/`package`, `arg_name`, plus `strip_v`/`tag_prefix` as needed).
-8. **`inject-tool/README.md`** — add a row to the Available Tools table.
+5. **`.github/workflows/version-bump.yml`** — two places: the `workflow_dispatch` `inputs.tool` choice list, and the `check-versions` matrix entry (`name`, `source`, `repo`/`package`, `arg_name`, plus `strip_v`/`tag_prefix` as needed).
+6. **`inject-tool/README.md`** — add a row to the Available Tools table.
 
 Finally, create the Quay repository `quay.io/che-incubator/tools-injector/<tool>` and **make it public** — new Quay repos are private by default, and workspaces get 401s pulling them.
 

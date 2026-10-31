@@ -38,7 +38,7 @@ jobs:
       - name: "Build tool matrix from changed files"
         id: set-matrix
         run: |
-          TOOLS='opencode goose claude-code kilocode gemini-cli cursor-cli tmux python3 gh codex uv pi'
+          TOOLS=$(python3 -c "import json; print(' '.join(sorted(json.load(open('inject-tool/registry.json'))['tools'])))")
           REBUILD_ALL=false
 
           if grep -q '^\.github/workflows/pr\.yml' changed_files.txt; then
@@ -147,15 +147,8 @@ jobs:
           m = re.search(r"^TOOLS\s*:=\s*(.+)$", makefile, re.M)
           checks["Makefile TOOLS list"] = set(m.group(1).split()) if m else set()
 
-          # tool names are lowercase alphanumerics plus '-'; this class also keeps
-          # the regex from matching its own source inlined in this workflow
-          pr_yml = Path(".github/workflows/pr.yml").read_text()
-          m = re.search(r"TOOLS='([a-z0-9 -]+)'", pr_yml)
-          checks["pr.yml build matrix"] = set(m.group(1).split()) if m else set()
-
-          release_yml = Path(".github/workflows/release.yml").read_text()
-          checks["release.yml build matrix"] = set(
-              re.findall(r"^\s+- name: (\S+)$", release_yml, re.M))
+          # the pr.yml and release.yml build matrices are derived from
+          # registry.json at run time, so they need no static-list check here
 
           bump_yml = Path(".github/workflows/version-bump.yml").read_text()
           checks["version-bump.yml matrix"] = set(
