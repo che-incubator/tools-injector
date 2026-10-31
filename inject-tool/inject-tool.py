@@ -495,9 +495,38 @@ def cmd_inject(tools, hot):
     info(f"Injected {tool_names}. Workspace is restarting...")
 
 
-def build_remove_ops(tool, ws, also_removing=None):
-    if also_removing is None:
-        also_removing = []
+def shared_infra_remove_ops(ws, tools):
+    """Ops removing the shared injected-tools volume and the editor's mount for
+    it. Returns [] unless no injector component will remain after the whole
+    batch is applied."""
+    removing_names = {f"{t}-injector" for t in tools}
+    other_injectors = [
+        c for c in get_components(ws)
+        if c.get("name", "").endswith("-injector")
+        and c["name"] not in removing_names
+    ]
+    if other_injectors:
+        return []
+
+    ops = []
+    vol_idx = find_component_index(ws, "injected-tools")
+    if vol_idx is not None:
+        ops.append({"op": "remove", "path": f"/spec/template/components/{vol_idx}"})
+
+    editor = find_editor(ws)
+    if editor:
+        editor_idx = editor[0]
+        mounts = get_components(ws)[editor_idx].get("container", {}).get("volumeMounts", [])
+        for mi, m in enumerate(mounts):
+            if m.get("name") == "injected-tools":
+                ops.append({"op": "remove",
+                            "path": f"/spec/template/components/{editor_idx}/container/volumeMounts/{mi}"})
+                break
+
+    return ops
+
+
+def build_remove_ops(tool, ws):
     comp_name = f"{tool}-injector"
     ops = []
 
@@ -526,31 +555,6 @@ def build_remove_ops(tool, ws, also_removing=None):
     post_idx = find_event_index(ws, "postStart", f"symlink-{tool}")
     if post_idx is not None:
         ops.append({"op": "remove", "path": f"/spec/template/events/postStart/{post_idx}"})
-
-    # Check if any other injectors remain (excluding tools being removed in this batch)
-    removing_names = {f"{r}-injector" for r in also_removing}
-    other_injectors = [
-        c for c in get_components(ws)
-        if c.get("name", "").endswith("-injector")
-        and c["name"] != comp_name
-        and c["name"] not in removing_names
-    ]
-
-    # If no other injectors, remove shared infrastructure
-    if not other_injectors:
-        vol_idx = find_component_index(ws, "injected-tools")
-        if vol_idx is not None:
-            ops.append({"op": "remove", "path": f"/spec/template/components/{vol_idx}"})
-
-        editor = find_editor(ws)
-        if editor:
-            editor_idx = editor[0]
-            mounts = get_components(ws)[editor_idx].get("container", {}).get("volumeMounts", [])
-            for mi, m in enumerate(mounts):
-                if m.get("name") == "injected-tools":
-                    ops.append({"op": "remove",
-                                "path": f"/spec/template/components/{editor_idx}/container/volumeMounts/{mi}"})
-                    break
 
     return ops
 
@@ -586,7 +590,10 @@ def cmd_remove(tools, hot):
 
     all_ops = []
     for tool in tools:
-        all_ops.extend(build_remove_ops(tool, ws, also_removing=tools))
+        all_ops.extend(build_remove_ops(tool, ws))
+    # shared infrastructure (volume, editor mount) is removed at most once,
+    # and only when no injector survives the whole batch
+    all_ops.extend(shared_infra_remove_ops(ws, tools))
 
     # Sort remove ops by descending index to avoid shifting
     all_ops.sort(key=_remove_sort_key, reverse=True)
