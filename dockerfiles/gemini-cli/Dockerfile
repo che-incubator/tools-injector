@@ -36,13 +36,23 @@ RUN apk add --no-cache curl xz && \
     tar -xJf /tmp/node.tar.xz -C /tmp && \
     cp /tmp/node-v${NODE_VERSION}-linux-${NODE_ARCH}/bin/node /usr/local/bin/node
 
+# The gemini bin wrapper. The npm bin symlink cannot be COPYed (COPY
+# dereferences it into a standalone script that fails to resolve its sibling
+# imports), so generate an sh wrapper that runs the real entrypoint with the
+# bundled node. Generated here (alpine) rather than in the runtime stage
+# because ubi10 requires x86-64-v3, which QEMU cannot emulate when
+# cross-building amd64 images on ARM hosts — the runtime stage must stay
+# COPY-only.
+RUN printf '#!/bin/sh\nDIR=$(dirname "$(readlink -f "$0")")\nexec "$DIR/node" "$DIR/../lib/node_modules/@google/gemini-cli/bundle/gemini.js" "$@"\n' > /usr/local/bin/gemini && \
+    chmod +x /usr/local/bin/gemini
+
 # Stage 3: assemble the bundle into a minimal runtime image.
 # Used as init container — copies bundle to shared volume, then exits.
 FROM registry.access.redhat.com/ubi10/ubi-minimal:10.0
 
 COPY --from=node-provider /usr/local/bin/node /opt/gemini-cli/bin/node
+COPY --from=node-provider /usr/local/bin/gemini /opt/gemini-cli/bin/gemini
 COPY --from=npm-installer /opt/app-root/src/.npm-global/lib/node_modules /opt/gemini-cli/lib/node_modules
-COPY --from=npm-installer /opt/app-root/src/.npm-global/bin/gemini /opt/gemini-cli/bin/gemini
 
 ARG GEMINI_CLI_VERSION
 ENV TOOL_NAME=gemini-cli TOOL_VERSION=${GEMINI_CLI_VERSION}
