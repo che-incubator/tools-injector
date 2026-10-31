@@ -42,6 +42,10 @@ jobs:
             dockerfile: dockerfiles/gh
           - name: codex
             dockerfile: dockerfiles/codex
+          - name: uv
+            dockerfile: dockerfiles/uv
+          - name: pi
+            dockerfile: dockerfiles/pi
     env:
       IMAGE: quay.io/che-incubator/tools-injector/${{ matrix.tool.name }}
       TAG: next
