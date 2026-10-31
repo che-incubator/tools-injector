@@ -354,6 +354,37 @@
         ],
         "postStart": "mkdir -p /injected-tools/bin && ln -sf /injected-tools/uvx /injected-tools/bin/uvx"
       }
+    },
+    "pi": {
+      "description": "Pi coding agent by earendil-works",
+      "pattern": "bundle",
+      "src": "/opt/pi",
+      "binary": "pi",
+      "injector": {
+        "memoryLimit": "256Mi"
+      },
+      "patch": [
+        {
+          "op": "add",
+          "path": "/spec/template/components/-",
+          "value": {
+            "name": "pi-injector",
+            "container": {
+              "image": "quay.io/che-incubator/tools-injector/pi:next",
+              "command": ["/bin/sh"],
+              "args": ["-c", "cp -a /opt/pi/. /injected-tools/pi/"],
+              "memoryLimit": "256Mi",
+              "mountSources": false,
+              "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
+            }
+          }
+        }
+      ],
+      "editor": {
+        "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
+        "env": [],
+        "postStart": ""
+      }
     }
   }
 }
