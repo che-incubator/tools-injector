@@ -16,32 +16,43 @@ on:
 
 jobs:
 
+  detect-tools:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@v6
+      - name: "Build tool matrix from registry.json"
+        id: set-matrix
+        run: |
+          TOOLS=$(python3 -c "import json; print(' '.join(sorted(json.load(open('inject-tool/registry.json'))['tools'])))")
+          echo "Tools to release: ${TOOLS}"
+
+          MATRIX="["
+          FIRST=true
+          for TOOL in $TOOLS; do
+            if [ "$FIRST" = "true" ]; then
+              FIRST=false
+            else
+              MATRIX="${MATRIX},"
+            fi
+            if [ "$TOOL" = "gemini-cli" ]; then
+              PLATFORMS="linux/amd64,linux/arm64,linux/s390x,linux/ppc64le"
+            else
+              PLATFORMS="linux/amd64,linux/arm64"
+            fi
+            MATRIX="${MATRIX}{\"name\":\"${TOOL}\",\"dockerfile\":\"dockerfiles/${TOOL}\",\"platforms\":\"${PLATFORMS}\"}"
+          done
+          MATRIX="${MATRIX}]"
+          echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
+
   build-tools:
+    needs: detect-tools
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tool:
-          - name: opencode
-            dockerfile: dockerfiles/opencode
-          - name: goose
-            dockerfile: dockerfiles/goose
-          - name: claude-code
-            dockerfile: dockerfiles/claude-code
-          - name: kilocode
-            dockerfile: dockerfiles/kilocode
-          - name: gemini-cli
-            dockerfile: dockerfiles/gemini-cli
-            platforms: linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
-          - name: cursor-cli
-            dockerfile: dockerfiles/cursor-cli
-          - name: tmux
-            dockerfile: dockerfiles/tmux
-          - name: python3
-            dockerfile: dockerfiles/python3
-          - name: gh
-            dockerfile: dockerfiles/gh
-          - name: codex
-            dockerfile: dockerfiles/codex
+        tool: ${{ fromJson(needs.detect-tools.outputs.matrix) }}
     env:
       IMAGE: quay.io/che-incubator/tools-injector/${{ matrix.tool.name }}
       TAG: next

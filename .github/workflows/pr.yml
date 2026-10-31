@@ -38,7 +38,7 @@ jobs:
       - name: "Build tool matrix from changed files"
         id: set-matrix
         run: |
-          TOOLS='opencode goose claude-code kilocode gemini-cli cursor-cli tmux python3 gh codex'
+          TOOLS=$(python3 -c "import json; print(' '.join(sorted(json.load(open('inject-tool/registry.json'))['tools'])))")
           REBUILD_ALL=false
 
           if grep -q '^\.github/workflows/pr\.yml' changed_files.txt; then
@@ -122,3 +122,59 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"expiration\": ${EXPIRATION}}" \
             "https://quay.io/api/v1/repository/che-incubator/tools-injector%2F${{ matrix.tool.name }}/tag/${{ env.TAG }}"
+
+  check-tool-registration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: "Check every registry tool is registered in every list"
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          registry = json.loads(Path("inject-tool/registry.json").read_text())
+          tools = set(registry["tools"])
+
+          checks = {}
+
+          makefile = Path("Makefile").read_text()
+          m = re.search(r"^TOOLS\s*:=\s*(.+)$", makefile, re.M)
+          checks["Makefile TOOLS list"] = set(m.group(1).split()) if m else set()
+
+          # the pr.yml and release.yml build matrices are derived from
+          # registry.json at run time, so they need no static-list check here
+
+          bump_yml = Path(".github/workflows/version-bump.yml").read_text()
+          checks["version-bump.yml matrix"] = set(
+              re.findall(r"^\s+- name: (\S+)$", bump_yml, re.M))
+          m = re.search(r"type: choice\s*\n\s*options:\s*\n((?:\s+- \S+\s*\n)+)", bump_yml)
+          choices = set(re.findall(r"-\s+'?([^'\s]+)", m.group(1))) if m else set()
+          checks["version-bump.yml dispatch choices"] = choices
+
+          readme = Path("inject-tool/README.md").read_text()
+          checks["README.md tools table"] = set(
+              re.findall(r"^\| (\S+) \| (?:init|bundle) \|", readme, re.M))
+
+          checks["dockerfiles/ directories"] = {
+              p.name for p in Path("dockerfiles").iterdir() if p.is_dir()}
+
+          failed = False
+          for label, found in checks.items():
+              for t in sorted(tools - found):
+                  print(f"::error file=inject-tool/registry.json::"
+                          f"tool '{t}' is in registry.json but missing from {label}")
+                  failed = True
+              for t in sorted(found - tools):
+                  print(f"::error::{label} lists '{t}' which is not in registry.json")
+                  failed = True
+
+          if failed:
+              sys.exit(1)
+          print(f"OK: all {len(tools)} registry tools registered in every list")
+          PY
