@@ -16,7 +16,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/opencode",
       "binary": "opencode",
-      "version": "v1.19.4",
+      "version": "v1.19.5",
       "injector": {
         "memoryLimit": "64Mi"
       },
