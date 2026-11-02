@@ -1,4 +1,4 @@
-ARG PI_VERSION=1.4.0
+ARG PI_VERSION=1.5.0
 
 # Stage 1: install pi on a multi-arch Node image.
 # ubi9/nodejs-22-minimal supports amd64, arm64, ppc64le, and s390x.
