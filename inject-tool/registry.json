@@ -242,7 +242,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/gh",
       "binary": "gh",
-      "version": "2.103.2",
+      "version": "2.103.3",
       "injector": {
         "memoryLimit": "64Mi"
       },
