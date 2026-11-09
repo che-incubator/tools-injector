@@ -82,7 +82,7 @@ jobs:
         with:
           persist-credentials: false
       -
-        name: "Check version pins are in sync (VERSION file, Dockerfile ARG, registry.json)"
+        name: "Check version pins are in sync (VERSION file, Dockerfile ARG, registry.json, lola/python3 Python pins)"
         run: |
           python3 - <<'EOF'
           import json, pathlib, re, sys
@@ -102,7 +102,24 @@ jobs:
                   if value != expected:
                       failures.append(f"{tool}: {where} is {value!r}, VERSION file says {expected!r}")
 
-          if failures:
+          # Bundles embedding the python3 tool's python-build-standalone runtime copy its
+          # PYTHON3_* pins as PYTHON_*; the python3 version bump rewrites lola's copy in the
+          # same PR, so this guards against manual drift.
+          python3_dockerfile = pathlib.Path("dockerfiles/python3/Dockerfile").read_text()
+          pins_drifted = False
+          for tool in ["lola"]:
+              path = f"dockerfiles/{tool}/Dockerfile"
+              text = pathlib.Path(path).read_text()
+              for pin in ("VERSION", "PBS_RELEASE"):
+                  ours = re.search(rf"^ARG PYTHON_{pin}=(\S+)$", text, re.M)
+                  want = re.search(rf"^ARG PYTHON3_{pin}=(\S+)$", python3_dockerfile, re.M)
+                  ours, want = (m.group(1) if m else None for m in (ours, want))
+                  if ours is None or ours != want:
+                      print(f"::error file={path}::{tool}: ARG PYTHON_{pin} is {ours!r}, "
+                            f"dockerfiles/python3/Dockerfile has PYTHON3_{pin}={want!r}; bump them together")
+                      pins_drifted = True
+
+          if failures or pins_drifted:
               for failure in failures:
                   print(f"::error::{failure}")
               sys.exit(1)

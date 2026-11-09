@@ -31,10 +31,21 @@ on:
           - codex
           - uv
           - pi
+          - lola
 
 permissions:
   contents: write
   pull-requests: write
+
+# One run at a time: overlapping runs for the same tool would overwrite each other's bump branch
+# (each lease is taken against whatever the branch holds), so a PR could end up on the other run's
+# commit, and one run's failure cleanup could delete the branch the other is about to open its PR
+# from. Queue instead of cancelling a run mid-push.
+# At most one run waits: a newer queued run cancels an older pending one whatever its tool
+# input (e.g. a pending weekly run, or a dispatch for another tool); re-dispatch if cancelled.
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
 
 jobs:
 
@@ -102,6 +113,12 @@ jobs:
             repo: astral-sh/python-build-standalone
             arg_name: PYTHON3_VERSION
             release_arg_name: PYTHON3_PBS_RELEASE
+          # only LOLA_VERSION is bumped here; lola's PYTHON_* pins are rewritten by the python3 bump in
+          # the same PR (which also test-builds lola), and pr.yml check-registry-versions fails on manual drift
+          - name: lola
+            source: pypi
+            package: lola-ai
+            arg_name: LOLA_VERSION
 
     steps:
       - name: "Checkout source code"
@@ -229,6 +246,28 @@ jobs:
           echo "release=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Latest ${TOOL} version: ${PY} (PBS release ${TAG})"
 
+      - name: "Fetch latest version (PyPI)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'pypi'
+        id: latest_pypi
+        env:
+          PACKAGE: ${{ matrix.tool.package }}
+          TOOL: ${{ matrix.tool.name }}
+        run: |
+          # info.version of the PyPI JSON API is the project's latest release; curl runs on its
+          # own (not piped into python) so a fetch failure reaches the error below
+          LATEST=""
+          if JSON=$(curl -fsSL "https://pypi.org/pypi/${PACKAGE}/json"); then
+            LATEST=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["info"]["version"])' <<< "$JSON")
+          fi
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to fetch latest PyPI version for ${PACKAGE}"
+            exit 1
+          fi
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${TOOL} version: ${LATEST}"
+
       - name: "Resolve latest version"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
         id: latest
@@ -238,8 +277,9 @@ jobs:
           FROM_CUSTOM: ${{ steps.latest_custom.outputs.version }}
           FROM_PBS: ${{ steps.latest_pbs.outputs.version }}
           FROM_PBS_RELEASE: ${{ steps.latest_pbs.outputs.release }}
+          FROM_PYPI: ${{ steps.latest_pypi.outputs.version }}
         run: |
-          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_CUSTOM:-${FROM_PBS}}}}"
+          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_CUSTOM:-${FROM_PBS:-${FROM_PYPI}}}}}"
           if [ -z "$VERSION" ]; then
             echo "::error::No version found for ${{ matrix.tool.name }}"
             exit 1
@@ -312,6 +352,7 @@ jobs:
           done
 
       - name: "Create bump branch and push"
+        id: bump_branch
         if: >-
           (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
           steps.compare.outputs.needs_bump == 'true' &&
@@ -333,6 +374,18 @@ jobs:
           sed -i "s/^ARG ${ARG_NAME}=.*/ARG ${ARG_NAME}=${LATEST}/" "dockerfiles/${TOOL}/Dockerfile"
           if [ -n "$RELEASE_ARG_NAME" ]; then
             sed -i "s/^ARG ${RELEASE_ARG_NAME}=.*/ARG ${RELEASE_ARG_NAME}=${LATEST_RELEASE}/" "dockerfiles/${TOOL}/Dockerfile"
+          fi
+
+          # lola bundles python3's PBS runtime under its own ARG names; bump them in the same PR
+          if [ "$TOOL" = "python3" ]; then
+            sed -i "s/^ARG PYTHON_VERSION=.*/ARG PYTHON_VERSION=${LATEST}/" dockerfiles/lola/Dockerfile
+            sed -i "s/^ARG PYTHON_PBS_RELEASE=.*/ARG PYTHON_PBS_RELEASE=${LATEST_RELEASE}/" dockerfiles/lola/Dockerfile
+            if ! grep -qxF "ARG PYTHON_VERSION=${LATEST}" dockerfiles/lola/Dockerfile ||
+              ! grep -qxF "ARG PYTHON_PBS_RELEASE=${LATEST_RELEASE}" dockerfiles/lola/Dockerfile; then
+              echo "::error::Failed to update the Python pins in dockerfiles/lola/Dockerfile"
+              exit 1
+            fi
+            git add dockerfiles/lola/Dockerfile
           fi
 
           # keep the registry version in sync with VERSION and the Dockerfile ARG;
@@ -357,7 +410,32 @@ jobs:
 
           git add "dockerfiles/${TOOL}/VERSION" "dockerfiles/${TOOL}/Dockerfile" "inject-tool/registry.json"
           git commit -s -m "bump(${TOOL}): ${CURRENT} → ${LATEST}"
-          git push --force-with-lease origin "${BRANCH}"
+
+          # existing_pr found no open PR on this branch, so overwriting a leftover copy is intended.
+          # Lease against the branch's current remote SHA, or "must not exist" (empty expect) when
+          # absent: the explicit <refname>:<expect> form needs no remote-tracking ref, which the
+          # checkout (triggering ref only) does not have. ls-remote --exit-code: 0 = exists, 2 = absent.
+          RC=0
+          OUT=$(git ls-remote --exit-code origin "refs/heads/${BRANCH}") || RC=$?
+          case "$RC" in
+            0)
+              OLD="${OUT%%[[:space:]]*}"
+              # exactly one line "<sha><TAB>refs/heads/<branch>"; anything else is unexpected
+              if [[ ! "$OLD" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]] ||
+                [[ "$OUT" != "${OLD}"$'\t'"refs/heads/${BRANCH}" ]]; then
+                echo "::error::Unexpected git ls-remote output for ${BRANCH}: '${OUT}'"
+                exit 1
+              fi
+              git push --force-with-lease="refs/heads/${BRANCH}:${OLD}" origin "${BRANCH}"
+              ;;
+            2)
+              git push --force-with-lease="refs/heads/${BRANCH}:" origin "${BRANCH}"
+              ;;
+            *)
+              echo "::error::Could not check ${BRANCH} on the remote (git ls-remote exit ${RC})"
+              exit 1
+              ;;
+          esac
 
       - name: "Set up QEMU"
         if: >-
@@ -383,6 +461,23 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
+
+      # lola embeds python3's PBS pins, which the bump step rewrote; build it (no push) so a
+      # lola broken by the new Python fails this job before the python3 image is pushed and
+      # before the PR is opened (the last step then deletes the already-pushed bump branch unless
+      # an open PR uses it)
+      - name: "Build lola image (python3 pins)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true' &&
+          steps.existing_pr.outputs.exists == 'false' &&
+          matrix.tool.name == 'python3'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: dockerfiles/lola/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
 
       - name: "Build and push image"
         if: >-
@@ -430,6 +525,8 @@ jobs:
             RELEASE_URL="https://www.npmjs.com/package/${PACKAGE}/v/${LATEST}"
           elif [ "$SOURCE" = "python-build-standalone" ]; then
             RELEASE_URL="https://github.com/${REPO}/releases/tag/${LATEST_RELEASE}"
+          elif [ "$SOURCE" = "pypi" ]; then
+            RELEASE_URL="https://pypi.org/project/${PACKAGE}/${LATEST}/"
           fi
 
           BODY="## Version Bump"
@@ -440,6 +537,10 @@ jobs:
 
           if [ -n "$RELEASE_URL" ]; then
             BODY="${BODY}"$'\n'"**Release:** ${RELEASE_URL}"
+          fi
+
+          if [ "$TOOL" = "python3" ]; then
+            BODY="${BODY}"$'\n\n'"Also updates lola's bundled Python pins (\`dockerfiles/lola/Dockerfile\`) to match; lola was rebuilt successfully against the new Python (linux/amd64 and linux/arm64, not pushed)."
           fi
 
           BODY="${BODY}"$'\n\n'"---"$'\n'"*Automated by the version-bump workflow.*"
@@ -454,7 +555,51 @@ jobs:
             --body "${BODY}" \
             --label "automated" \
             --label "version-bump"; then
-            echo "PR creation failed, cleaning up branch"
-            git push origin --delete "${BRANCH}" || true
+            echo "PR creation failed; the final cleanup step deletes ${BRANCH} unless an open PR uses it"
             exit 1
           fi
+
+      # Single deletion point for the bump branch when a step failed after it was pushed (an image
+      # build, or PR creation): delete it only when no open PR uses it. Defence in depth: the bump
+      # step's explicit-SHA lease would overwrite a leftover branch on the next run for the same version.
+      - name: "Delete bump branch after a failed step"
+        if: >-
+          failure() &&
+          steps.bump_branch.outcome == 'success' &&
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true' &&
+          steps.existing_pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.latest.outputs.version }}
+          TOOL: ${{ matrix.tool.name }}
+        run: |
+          BRANCH="bump/${TOOL}-${LATEST}"
+          # Keep the branch if an open PR uses it (PR creation can fail after the PR exists, e.g. while
+          # adding labels) or if that cannot be checked. The job has already failed either way.
+          PR_RC=0
+          OPEN_PRS=$(gh pr list --head "${BRANCH}" --state open --json number --jq 'length') || PR_RC=$?
+          if [ "$PR_RC" -ne 0 ] || [[ ! "$OPEN_PRS" =~ ^[0-9]+$ ]]; then
+            echo "::warning::Could not check for an open PR on ${BRANCH} (gh exit ${PR_RC}, output '${OPEN_PRS}'); keeping the branch"
+            exit 0
+          fi
+          if [ "$OPEN_PRS" -gt 0 ]; then
+            echo "::warning::An open PR uses ${BRANCH} (e.g. created without its labels); keeping the branch, check that PR's labels"
+            exit 0
+          fi
+          # no open PR: delete the branch if it is still on the remote; --exit-code returns 2 when absent
+          RC=0
+          git ls-remote --exit-code origin "refs/heads/${BRANCH}" > /dev/null || RC=$?
+          case "$RC" in
+            0)
+              git push origin --delete "${BRANCH}"
+              echo "::warning::Deleted ${BRANCH} after a failed step so the next run can recreate it"
+              ;;
+            2)
+              echo "::notice::${BRANCH} is not on the remote (already deleted); nothing to clean up"
+              ;;
+            *)
+              echo "::error::Could not check ${BRANCH} on the remote (git ls-remote exit ${RC}); delete it by hand if it exists"
+              exit 1
+              ;;
+          esac

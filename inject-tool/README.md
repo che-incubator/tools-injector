@@ -49,6 +49,7 @@ inject-tool remove opencode --hot
 | gh | init | GitHub CLI |
 | uv | init | Python package and project manager |
 | pi | bundle | Pi coding agent by earendil-works |
+| lola | bundle | Universal AI context package manager (python-build-standalone bundle) |
 
 ## Configuration
 
@@ -66,7 +67,7 @@ The tool is delivered as two files via ConfigMap automount:
 
 **Init container tools** (opencode, goose, claude-code, tmux): patches the DevWorkspace CR to add an init container that copies the tool binary to a shared `/injected-tools` volume. A postStart event creates a symlink in `/injected-tools/bin/` and adds it to PATH via `~/.bashrc`.
 
-**Bundle tools** (kilocode, gemini-cli, cursor-cli, python3): patches the DevWorkspace CR to add an init container that copies the full runtime + tool directory to `/injected-tools/<tool>/`. The editor container gets a +512Mi memory bump by default, overridable per tool via `editor.memoryBump` (python3 sets 0Mi).
+**Bundle tools** (kilocode, gemini-cli, cursor-cli, python3, pi, lola): patches the DevWorkspace CR to add an init container that copies the full runtime + tool directory to `/injected-tools/<tool>/`. The editor container gets a +512Mi memory bump by default, overridable per tool via `editor.memoryBump` (python3 and lola set 0Mi).
 
 **Hot inject** (`--hot`): extracts the binary from the container image using `oc image extract`. Init-pattern tools only. Not persistent across restarts.
 
