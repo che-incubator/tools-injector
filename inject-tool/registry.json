@@ -80,7 +80,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/claude",
       "binary": "claude",
-      "version": "2.1.310",
+      "version": "2.1.316",
       "injector": {
         "memoryLimit": "64Mi"
       },
