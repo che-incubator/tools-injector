@@ -1,4 +1,4 @@
-ARG CODEX_VERSION=0.166.0
+ARG CODEX_VERSION=0.167.0
 
 # Stage 1: Download and extract codex
 # Use alpine for the builder stage because UBI10 requires x86-64-v3 CPU support,
