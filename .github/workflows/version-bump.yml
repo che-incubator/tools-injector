@@ -103,7 +103,8 @@ jobs:
             repo: astral-sh/python-build-standalone
             arg_name: PYTHON3_VERSION
             release_arg_name: PYTHON3_PBS_RELEASE
-          # only LOLA_VERSION is bumped; the Dockerfile's PBS pins follow dockerfiles/python3 by hand
+          # only LOLA_VERSION is bumped here; lola's PYTHON_* pins are rewritten by the python3 bump in
+          # the same PR (which also test-builds lola), and pr.yml check-registry-versions fails on manual drift
           - name: lola
             source: pypi
             package: lola-ai
@@ -364,6 +365,18 @@ jobs:
             sed -i "s/^ARG ${RELEASE_ARG_NAME}=.*/ARG ${RELEASE_ARG_NAME}=${LATEST_RELEASE}/" "dockerfiles/${TOOL}/Dockerfile"
           fi
 
+          # lola bundles python3's PBS runtime under its own ARG names; bump them in the same PR
+          if [ "$TOOL" = "python3" ]; then
+            sed -i "s/^ARG PYTHON_VERSION=.*/ARG PYTHON_VERSION=${LATEST}/" dockerfiles/lola/Dockerfile
+            sed -i "s/^ARG PYTHON_PBS_RELEASE=.*/ARG PYTHON_PBS_RELEASE=${LATEST_RELEASE}/" dockerfiles/lola/Dockerfile
+            if ! grep -qxF "ARG PYTHON_VERSION=${LATEST}" dockerfiles/lola/Dockerfile ||
+              ! grep -qxF "ARG PYTHON_PBS_RELEASE=${LATEST_RELEASE}" dockerfiles/lola/Dockerfile; then
+              echo "::error::Failed to update the Python pins in dockerfiles/lola/Dockerfile"
+              exit 1
+            fi
+            git add dockerfiles/lola/Dockerfile
+          fi
+
           # keep the registry version in sync with VERSION and the Dockerfile ARG;
           # targeted text edit because a full json.dump rewrite would reformat the file
           python3 - "$TOOL" "$LATEST" <<'EOF'
@@ -412,6 +425,22 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_USERNAME }}
           password: ${{ secrets.QUAY_PASSWORD }}
+
+      # lola embeds python3's PBS pins, which the bump step rewrote; build it (no push) so a
+      # lola broken by the new Python fails this job before the python3 image is pushed and
+      # before the PR is opened
+      - name: "Build lola image (python3 pins)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          steps.compare.outputs.needs_bump == 'true' &&
+          steps.existing_pr.outputs.exists == 'false' &&
+          matrix.tool.name == 'python3'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: dockerfiles/lola/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
 
       - name: "Build and push image"
         if: >-
@@ -471,6 +500,10 @@ jobs:
 
           if [ -n "$RELEASE_URL" ]; then
             BODY="${BODY}"$'\n'"**Release:** ${RELEASE_URL}"
+          fi
+
+          if [ "$TOOL" = "python3" ]; then
+            BODY="${BODY}"$'\n\n'"Also updates lola's bundled Python pins (\`dockerfiles/lola/Dockerfile\`) to match; lola was rebuilt successfully against the new Python (linux/amd64 and linux/arm64, not pushed)."
           fi
 
           BODY="${BODY}"$'\n\n'"---"$'\n'"*Automated by the version-bump workflow.*"

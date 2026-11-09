@@ -1,10 +1,12 @@
 # lola (lola-ai on PyPI) on a python-build-standalone (PBS) glibc bundle.
 # LOLA_VERSION is rewritten by the version-bump workflow; keep the exact form.
-# PYTHON_VERSION/PYTHON_PBS_RELEASE match the PYTHON3_* pins in dockerfiles/python3
-# and are bumped by hand (the python3 bump only rewrites dockerfiles/python3).
+# PYTHON_VERSION/PYTHON_PBS_RELEASE mirror the PYTHON3_* pins in dockerfiles/python3:
+# the python3 version bump rewrites them here in the same PR (keep the exact
+# form) and builds this image with them before opening the PR, and pr.yml
+# (check-registry-versions) fails on manual drift.
 # lola-ai requires Python >= 3.13.
 ARG LOLA_VERSION=0.7.1
-# python3's PBS pins (bumped by hand together with dockerfiles/python3)
+# python3's PBS pins (rewritten by the python3 bump)
 ARG PYTHON_VERSION=3.13.18
 ARG PYTHON_PBS_RELEASE=20261026
 
