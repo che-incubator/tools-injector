@@ -307,7 +307,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/codex",
       "binary": "codex",
-      "version": "0.166.0",
+      "version": "0.167.0",
       "injector": {
         "memoryLimit": "64Mi"
       },
