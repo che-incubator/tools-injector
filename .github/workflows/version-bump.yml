@@ -31,6 +31,7 @@ on:
           - codex
           - uv
           - pi
+          - lola
 
 permissions:
   contents: write
@@ -102,6 +103,11 @@ jobs:
             repo: astral-sh/python-build-standalone
             arg_name: PYTHON3_VERSION
             release_arg_name: PYTHON3_PBS_RELEASE
+          # only LOLA_VERSION is bumped; the Dockerfile's PBS pins follow dockerfiles/python3 by hand
+          - name: lola
+            source: pypi
+            package: lola-ai
+            arg_name: LOLA_VERSION
 
     steps:
       - name: "Checkout source code"
@@ -229,6 +235,28 @@ jobs:
           echo "release=${TAG}" >> "$GITHUB_OUTPUT"
           echo "Latest ${TOOL} version: ${PY} (PBS release ${TAG})"
 
+      - name: "Fetch latest version (PyPI)"
+        if: >-
+          (inputs.tool == '' || inputs.tool == matrix.tool.name) &&
+          matrix.tool.source == 'pypi'
+        id: latest_pypi
+        env:
+          PACKAGE: ${{ matrix.tool.package }}
+          TOOL: ${{ matrix.tool.name }}
+        run: |
+          # info.version of the PyPI JSON API is the project's latest release; curl runs on its
+          # own (not piped into python) so a fetch failure reaches the error below
+          LATEST=""
+          if JSON=$(curl -fsSL "https://pypi.org/pypi/${PACKAGE}/json"); then
+            LATEST=$(python3 -c 'import json, sys; print(json.load(sys.stdin)["info"]["version"])' <<< "$JSON")
+          fi
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to fetch latest PyPI version for ${PACKAGE}"
+            exit 1
+          fi
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "Latest ${TOOL} version: ${LATEST}"
+
       - name: "Resolve latest version"
         if: inputs.tool == '' || inputs.tool == matrix.tool.name
         id: latest
@@ -238,8 +266,9 @@ jobs:
           FROM_CUSTOM: ${{ steps.latest_custom.outputs.version }}
           FROM_PBS: ${{ steps.latest_pbs.outputs.version }}
           FROM_PBS_RELEASE: ${{ steps.latest_pbs.outputs.release }}
+          FROM_PYPI: ${{ steps.latest_pypi.outputs.version }}
         run: |
-          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_CUSTOM:-${FROM_PBS}}}}"
+          VERSION="${FROM_GITHUB:-${FROM_NPM:-${FROM_CUSTOM:-${FROM_PBS:-${FROM_PYPI}}}}}"
           if [ -z "$VERSION" ]; then
             echo "::error::No version found for ${{ matrix.tool.name }}"
             exit 1
@@ -430,6 +459,8 @@ jobs:
             RELEASE_URL="https://www.npmjs.com/package/${PACKAGE}/v/${LATEST}"
           elif [ "$SOURCE" = "python-build-standalone" ]; then
             RELEASE_URL="https://github.com/${REPO}/releases/tag/${LATEST_RELEASE}"
+          elif [ "$SOURCE" = "pypi" ]; then
+            RELEASE_URL="https://pypi.org/project/${PACKAGE}/${LATEST}/"
           fi
 
           BODY="## Version Bump"

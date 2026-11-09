@@ -401,6 +401,39 @@
         "env": [],
         "postStart": ""
       }
+    },
+    "lola": {
+      "description": "Universal AI context package manager",
+      "pattern": "bundle",
+      "src": "/opt/lola",
+      "binary": "lola",
+      "version": "0.7.1",
+      "injector": {
+        "memoryLimit": "64Mi"
+      },
+      "patch": [
+        {
+          "op": "add",
+          "path": "/spec/template/components/-",
+          "value": {
+            "name": "lola-injector",
+            "container": {
+              "image": "quay.io/che-incubator/tools-injector/lola:next",
+              "command": ["/bin/sh"],
+              "args": ["-c", "cp -a /opt/lola/. /injected-tools/lola/"],
+              "memoryLimit": "64Mi",
+              "mountSources": false,
+              "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }]
+            }
+          }
+        }
+      ],
+      "editor": {
+        "volumeMounts": [{ "name": "injected-tools", "path": "/injected-tools" }],
+        "env": [],
+        "postStart": "",
+        "memoryBump": "0Mi"
+      }
     }
   }
 }
