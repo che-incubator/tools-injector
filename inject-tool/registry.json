@@ -113,7 +113,7 @@
       "pattern": "bundle",
       "src": "/opt/kilocode",
       "binary": "kilo",
-      "version": "7.8.18",
+      "version": "7.8.27",
       "injector": {
         "memoryLimit": "64Mi"
       },
