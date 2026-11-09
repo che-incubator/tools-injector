@@ -48,7 +48,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/goose",
       "binary": "goose",
-      "version": "v1.56.0",
+      "version": "v1.57.0",
       "injector": {
         "memoryLimit": "64Mi"
       },
