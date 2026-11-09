@@ -209,7 +209,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/tmux",
       "binary": "tmux",
-      "version": "3.7c",
+      "version": "3.8",
       "versionCommand": ["tmux", "-V"],
       "injector": {
         "memoryLimit": "64Mi"
