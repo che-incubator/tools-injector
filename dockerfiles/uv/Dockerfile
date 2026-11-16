@@ -1,7 +1,7 @@
 FROM alpine:3.21 AS builder
 
 ARG TARGETARCH
-ARG UV_VERSION=0.13.6
+ARG UV_VERSION=0.13.7
 
 # musl builds are fully static, so the same binary runs on glibc and musl workspaces.
 # The published .sha256 is normalized (awk takes the hash field whether the file is a

@@ -339,7 +339,7 @@
       "pattern": "init",
       "src": "/usr/local/bin/uv",
       "binary": "uv",
-      "version": "0.13.6",
+      "version": "0.13.7",
       "injector": {
         "memoryLimit": "64Mi"
       },
