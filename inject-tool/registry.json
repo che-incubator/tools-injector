@@ -177,7 +177,7 @@
       "pattern": "bundle",
       "src": "/opt/cursor-cli",
       "binary": "agent",
-      "version": "2026.10.22-27dcf5f",
+      "version": "2026.11.05-86047df",
       "injector": {
         "memoryLimit": "64Mi"
       },
